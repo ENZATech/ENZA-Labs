@@ -1,0 +1,3203 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ritual To-Do — Daily Tasks, Steps, Birthdays, EOD Reminders & Weekly Habit Matrix</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+            serif: ['Instrument Serif', 'Georgia', 'serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Custom Scrollbars & Micro-Animations (from mark_02) */
+    :root {
+      --accent: #10b981;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+    }
+    .font-mono-tabular {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-serif-editorial {
+      font-family: 'Instrument Serif', Georgia, serif;
+    }
+    @keyframes checkPop {
+      0% { transform: scale(0.75); }
+      50% { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
+    .animate-check-pop {
+      animation: checkPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0.4; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .animate-slide-in {
+      animation: slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes pulseRoseBorder {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(244, 63, 94, 0); }
+    }
+    .pulse-birthday {
+      animation: pulseRoseBorder 2s infinite;
+    }
+    /* Subtle custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(120, 113, 108, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(120, 113, 108, 0.5);
+    }
+  </style>
+</head>
+
+<body class="bg-[#FAF8F5] dark:bg-[#0C0A09] text-[#1C1917] dark:text-[#F5F5F4] transition-colors duration-200 selection:bg-emerald-500/20">
+
+  <!-- ===================================================================== -->
+  <!-- FLOATING TOAST NOTIFICATION                                           -->
+  <!-- ===================================================================== -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 pointer-events-none flex flex-col gap-2"></div>
+
+  <!-- ===================================================================== -->
+  <!-- MAIN APPLICATION SHELL (SIDEBAR + WORKSPACE + RIGHT INSPECTOR)        -->
+  <!-- ===================================================================== -->
+  <div class="flex h-screen w-screen overflow-hidden">
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden backdrop-blur-xs"></div>
+
+    <!-- =================================================================== -->
+    <!-- 1. LEFT SIDEBAR (MICROSOFT TO DO NAVIGATION + CUSTOM LISTS)         -->
+    <!-- =================================================================== -->
+    <aside id="left-sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-72 shrink-0 flex flex-col border-r border-stone-200/90 dark:border-stone-800/90 bg-[#F3F1ED] dark:bg-[#141210] transition-transform duration-300 -translate-x-full lg:translate-x-0 select-none">
+      
+      <!-- App Brand & Local Storage Status -->
+      <div class="p-4 flex items-center justify-between border-b border-stone-200/80 dark:border-stone-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
+            <i data-lucide="flame" class="w-5 h-5 fill-amber-300 text-amber-200"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-lg tracking-tight">Ritual</span>
+              <span class="text-[11px] font-mono-tabular uppercase px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">To-Do</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[11px] text-stone-500 dark:text-stone-400">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Auto-saved to PC</span>
+            </div>
+          </div>
+        </div>
+        <button onclick="toggleMobileSidebar(false)" class="lg:hidden p-1.5 rounded-lg hover:bg-stone-500/10 text-stone-500">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Search Input (Microsoft To Do style) -->
+      <div class="px-3 pt-3 pb-2">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input
+            id="sidebar-search"
+            type="text"
+            oninput="handleSearchInput(this.value)"
+            placeholder="Search tasks, steps, notes..."
+            class="w-full pl-9 pr-7 py-2 text-xs rounded-xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-stone-900/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+          />
+          <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Primary Smart Views (Microsoft To Do + Habit Matrix + Birthdays) -->
+      <nav id="smart-views-nav" class="px-2.5 py-1 space-y-1">
+        <!-- Rendered dynamically by renderSidebar() -->
+      </nav>
+
+      <div class="mx-4 my-2 border-t border-stone-200/80 dark:border-stone-800/80"></div>
+
+      <!-- Custom Lists Header -->
+      <div class="px-4 py-1 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+        <span>My Lists & Categories</span>
+        <span id="custom-lists-count">0</span>
+      </div>
+
+      <!-- Scrollable Custom Lists -->
+      <div id="custom-lists-nav" class="flex-1 overflow-y-auto px-2.5 py-1 space-y-1">
+        <!-- Rendered dynamically by renderSidebar() -->
+      </div>
+
+      <!-- Auto EOD Missing Task Reminder Status Bar in Sidebar -->
+      <div class="px-3 pt-2">
+        <div
+          onclick="toggleEODSettingsModal(true)"
+          class="flex items-center justify-between px-3 py-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 hover:bg-emerald-500/15 transition-colors cursor-pointer"
+        >
+          <div class="flex items-center gap-2 min-w-0">
+            <i data-lucide="bell-ring" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0"></i>
+            <div class="truncate">
+              <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">Auto EOD Reminder</div>
+              <div id="sidebar-eod-status" class="text-[10px] text-stone-500 dark:text-stone-400 font-mono-tabular">Daily at 21:00</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-emerald-600 text-white">Config</span>
+        </div>
+      </div>
+
+      <!-- New Custom List Creator (Bottom of Sidebar like MS To Do) -->
+      <div class="p-3 mt-2 border-t border-stone-200/80 dark:border-stone-800/80 bg-stone-200/30 dark:bg-stone-900/40">
+        <form onsubmit="handleCreateList(event)" class="flex items-center gap-1.5">
+          <div class="relative flex-1">
+            <i data-lucide="plus" class="w-4 h-4 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="new-list-input"
+              type="text"
+              placeholder="New list (e.g. C Programming)"
+              class="w-full pl-8 pr-2.5 py-2 text-xs rounded-xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <input
+            id="new-list-color"
+            type="color"
+            value="#3B82F6"
+            title="Pick list accent color"
+            class="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent p-0"
+          />
+          <button
+            type="submit"
+            class="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer"
+          >
+            Add
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- =================================================================== -->
+    <!-- 2. CENTER WORKSPACE                                                 -->
+    <!-- =================================================================== -->
+    <main class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+
+      <!-- Top Utility Bar -->
+      <header class="shrink-0 px-4 sm:px-6 py-3.5 border-b border-stone-200/80 dark:border-stone-800 bg-white/80 dark:bg-[#12100E]/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-3">
+        
+        <div class="flex items-center gap-3">
+          <!-- Mobile Hamburger -->
+          <button onclick="toggleMobileSidebar(true)" class="lg:hidden p-2 rounded-xl border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
+
+          <div id="header-view-title">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Right Controls: Suggestions, Birthdays, EOD Alert, Backup/Restore, PC Guide, Sound, Theme -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Suggestions Button -->
+          <button
+            id="suggestions-btn"
+            onclick="toggleSuggestionsModal()"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer"
+            title="Microsoft To Do Suggestions for My Day"
+          >
+            <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500"></i>
+            <span>Suggestions</span>
+            <span id="suggestions-badge" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular bg-amber-500 text-white">0</span>
+          </button>
+
+          <!-- Friend Birthdays Quick Button -->
+          <button
+            id="header-bday-btn"
+            onclick="setActiveView('birthdays')"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 transition-all cursor-pointer"
+            title="Friends' Birthdays & Yesterday Belated Rescue"
+          >
+            <i data-lucide="cake" class="w-4 h-4 text-rose-500"></i>
+            <span>Birthdays</span>
+            <span id="header-bday-badge" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular bg-rose-500 text-white">1</span>
+          </button>
+
+          <!-- EOD Reminder Config & Instant Test Button -->
+          <button
+            onclick="triggerEODCheckNow(true)"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer"
+            title="Test the End-of-Day Missing Task Notification & Evening Check-In right now"
+          >
+            <i data-lucide="bell-ring" class="w-3.5 h-3.5 text-emerald-500"></i>
+            <span id="header-eod-label">EOD 21:00</span>
+          </button>
+
+          <!-- Export JSON Backup -->
+          <button
+            onclick="exportDataAsJson()"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+            title="Save a backup file (.json) to your PC"
+          >
+            <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-500"></i>
+            <span class="hidden sm:inline">Backup</span>
+          </button>
+
+          <!-- Import JSON Backup -->
+          <label
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+            title="Restore data from a .json backup file"
+          >
+            <i data-lucide="upload" class="w-3.5 h-3.5 text-blue-500"></i>
+            <span class="hidden sm:inline">Restore</span>
+            <input type="file" accept=".json" onchange="importDataFromJson(event)" class="hidden" />
+          </label>
+
+          <!-- PC Setup & MS To-Do Guide Button -->
+          <button
+            onclick="toggleGuideModal(true)"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors cursor-pointer"
+          >
+            <i data-lucide="monitor-smartphone" class="w-3.5 h-3.5"></i>
+            <span class="hidden xl:inline">PC App & Prompt Guide</span>
+          </button>
+
+          <!-- Sound Toggle -->
+          <button
+            id="sound-toggle-btn"
+            onclick="toggleSound()"
+            class="p-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+            title="Toggle completion sound chime"
+          >
+            <i data-lucide="volume-2" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Dark / Light Theme Toggle -->
+          <button
+            id="theme-toggle-btn"
+            onclick="toggleTheme()"
+            class="p-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+            title="Toggle Dark / Daylight Theme"
+          >
+            <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Workspace Content -->
+      <div class="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        
+        <!-- URGENT BIRTHDAY RADAR BANNER (Auto-appears when a birthday was missed yesterday or is today!) -->
+        <div id="urgent-birthday-banner-slot"></div>
+
+        <!-- TOP KPI SUMMARY STRIP -->
+        <section id="kpi-strip" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Dynamically rendered by renderKPIs() -->
+        </section>
+
+        <!-- QUICK-ADD TASK / HABIT BAR (Microsoft To Do style unified creator) -->
+        <section id="quick-add-section" class="rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#171412] p-3.5 shadow-xs">
+          <form onsubmit="handleQuickAdd(event)" class="space-y-3">
+            <div class="flex items-center gap-3">
+              <div class="w-6 h-6 rounded-lg border-2 border-emerald-500/60 flex items-center justify-center text-emerald-500 shrink-0">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+              </div>
+              <input
+                id="quick-add-title"
+                type="text"
+                placeholder="Add a task or daily habit (e.g., 'Practice C Pointers & Structs' or 'Morning Run')..."
+                class="w-full bg-transparent text-sm sm:text-base font-medium focus:outline-none placeholder:text-stone-400 dark:placeholder:text-stone-500"
+              />
+              <button
+                type="submit"
+                class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all shrink-0 cursor-pointer active:scale-95"
+              >
+                Add Item
+              </button>
+            </div>
+
+            <!-- Quick-Add Metadata Pills (MS To Do Toolbar) -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-stone-100 dark:border-stone-800/80 text-xs">
+              <div class="flex flex-wrap items-center gap-2">
+                <!-- Item Mode: Daily Habit vs One-Time Task -->
+                <label class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 cursor-pointer">
+                  <i data-lucide="repeat" class="w-3.5 h-3.5 text-emerald-500"></i>
+                  <select id="quick-add-repeat" class="bg-transparent font-medium focus:outline-none cursor-pointer">
+                    <option value="daily" class="bg-white dark:bg-stone-900">🔁 Daily Habit (7-Day Matrix)</option>
+                    <option value="once" class="bg-white dark:bg-stone-900">📌 One-Time To-Do Task</option>
+                    <option value="weekdays" class="bg-white dark:bg-stone-900">💼 Weekdays (Mon-Fri)</option>
+                  </select>
+                </label>
+
+                <!-- Category / List Selector -->
+                <label class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 cursor-pointer">
+                  <i data-lucide="folder" class="w-3.5 h-3.5 text-blue-500"></i>
+                  <select id="quick-add-list" class="bg-transparent font-medium focus:outline-none cursor-pointer">
+                    <!-- Populated dynamically -->
+                  </select>
+                </label>
+
+                <!-- Due Date Picker -->
+                <label class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 cursor-pointer" title="Set Due Date">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5 text-purple-500"></i>
+                  <input id="quick-add-due" type="date" class="bg-transparent font-mono-tabular text-xs focus:outline-none cursor-pointer" />
+                </label>
+
+                <!-- Target / Duration Cue -->
+                <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900">
+                  <i data-lucide="target" class="w-3.5 h-3.5 text-amber-500"></i>
+                  <input
+                    id="quick-add-target"
+                    type="text"
+                    placeholder="Goal cue (e.g. 30 mins)"
+                    class="bg-transparent w-28 text-xs focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <!-- Quick Toggles: Add to My Day & Important Star -->
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  id="quick-add-myday-btn"
+                  onclick="toggleQuickAddMyDay()"
+                  class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300"
+                >
+                  <i data-lucide="sun" class="w-3.5 h-3.5"></i>
+                  <span>In My Day</span>
+                </button>
+
+                <button
+                  type="button"
+                  id="quick-add-star-btn"
+                  onclick="toggleQuickAddStar()"
+                  class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+                >
+                  <i data-lucide="star" class="w-3.5 h-3.5"></i>
+                  <span>Important</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- DYNAMIC VIEW CONTAINER -->
+        <div id="main-view-container" class="space-y-6 pb-12">
+          <!-- Populated dynamically based on selected sidebar view -->
+        </div>
+
+      </div>
+    </main>
+
+    <!-- =================================================================== -->
+    <!-- 3. RIGHT SLIDE-OVER DETAIL INSPECTOR (MICROSOFT TO DO STEPS & NOTES)-->
+    <!-- =================================================================== -->
+    <aside
+      id="right-inspector"
+      class="hidden fixed lg:static inset-y-0 right-0 z-40 w-80 sm:w-96 shrink-0 border-l border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#161311] flex-col h-full shadow-2xl lg:shadow-none animate-slide-in"
+    >
+      <!-- Populated dynamically when a task or habit is clicked -->
+    </aside>
+
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: END-OF-DAY (EOD) MISSING TASKS & HABITS EVENING CHECK-IN     -->
+  <!-- ===================================================================== -->
+  <div id="eod-alert-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <div class="w-full max-w-lg rounded-2xl border border-amber-500/40 bg-white dark:bg-[#171412] p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-stone-200 dark:border-stone-800">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-500 flex items-center justify-center">
+            <i data-lucide="moon" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold">End-of-Day Missing Task Alert</h3>
+            <p id="eod-alert-subtitle" class="text-xs text-stone-500 dark:text-stone-400">Before today ends, check off what you completed!</p>
+          </div>
+        </div>
+        <button onclick="toggleEODAlertModal(false)" class="p-1.5 rounded-lg hover:bg-stone-500/10 text-stone-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="eod-missing-list" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+        <!-- Populated dynamically -->
+      </div>
+
+      <div class="mt-5 pt-3 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between gap-2">
+        <button onclick="snoozeEODReminder(30)" class="px-3 py-2 rounded-xl text-xs font-semibold border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer">
+          ⏰ Snooze 30m
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="toggleEODAlertModal(false);toggleEODSettingsModal(true)" class="px-3 py-2 rounded-xl text-xs font-semibold border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer">
+            ⚙️ Change Time
+          </button>
+          <button onclick="toggleEODAlertModal(false)" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+            Done for Tonight
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: EOD REMINDER SETTINGS MODAL                                  -->
+  <!-- ===================================================================== -->
+  <div id="eod-settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <div class="w-full max-w-md rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#171412] p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-stone-200 dark:border-stone-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+            <i data-lucide="bell-ring" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold">Automatic End-of-Day Reminder</h3>
+            <p class="text-xs text-stone-500 dark:text-stone-400">Alerts you if any habit, task, or birthday is missed</p>
+          </div>
+        </div>
+        <button onclick="toggleEODSettingsModal(false)" class="p-1.5 rounded-lg hover:bg-stone-500/10 text-stone-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <label class="flex items-center justify-between p-3.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/60 cursor-pointer">
+          <span class="font-semibold text-sm">Enable Daily Evening Reminder</span>
+          <input type="checkbox" id="eod-enabled-input" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" />
+        </label>
+
+        <div>
+          <label class="font-semibold uppercase tracking-wider text-[11px] text-stone-400 block mb-1.5">Reminder Cutoff Time (24h)</label>
+          <input type="time" id="eod-time-input" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 font-mono-tabular text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+
+        <div class="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between gap-3">
+          <div>
+            <div class="font-bold text-emerald-700 dark:text-emerald-300">Desktop OS Notifications</div>
+            <div id="notif-permission-text" class="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">Allow browser popups so alerts show over other windows</div>
+          </div>
+          <button onclick="requestDesktopNotificationPermission()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shrink-0 cursor-pointer">
+            Allow Popups
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-3 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between gap-2">
+        <button onclick="triggerEODCheckNow(true)" class="px-3 py-2 rounded-xl text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 cursor-pointer">
+          ⚡ Test Alert Now
+        </button>
+        <div class="flex gap-2">
+          <button onclick="toggleEODSettingsModal(false)" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-stone-200 dark:border-stone-800 cursor-pointer">
+            Cancel
+          </button>
+          <button onclick="saveEODSettings()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+            Save Time
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 3: BIRTHDAY & BELATED WISH STUDIO MODAL                         -->
+  <!-- ===================================================================== -->
+  <div id="birthday-wish-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <div class="w-full max-w-lg rounded-2xl border border-rose-500/40 bg-white dark:bg-[#171412] p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-stone-200 dark:border-stone-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center">
+            <i data-lucide="cake" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="wish-modal-title" class="text-base font-bold">Send Birthday Wish</h3>
+            <p class="text-xs text-stone-500 dark:text-stone-400">Pick a template below (includes Belated Rescue if you missed yesterday!)</p>
+          </div>
+        </div>
+        <button onclick="toggleBirthdayWishModal(false)" class="p-1.5 rounded-lg hover:bg-stone-500/10 text-stone-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-3">
+        <button onclick="setWishTemplate('belated')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30 hover:bg-rose-500/25 cursor-pointer">
+          🚨 Belated Rescue (Missed Yesterday)
+        </button>
+        <button onclick="setWishTemplate('bro')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer">
+          🔥 Bro / Casual Hype
+        </button>
+        <button onclick="setWishTemplate('warm')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 cursor-pointer">
+          ✨ Heartfelt & Warm
+        </button>
+      </div>
+
+      <textarea
+        id="wish-message-textarea"
+        rows="4"
+        class="w-full p-3.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 text-xs sm:text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-rose-500"
+      ></textarea>
+
+      <div class="mt-5 pt-3 border-t border-stone-200 dark:border-stone-800 flex flex-wrap items-center justify-between gap-2">
+        <button onclick="copyWishMessage()" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 cursor-pointer">
+          📋 Copy Message
+        </button>
+        <button onclick="sendWhatsAppWish()" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+          💬 Open WhatsApp
+        </button>
+        <button onclick="markWishedFromModal()" class="py-2.5 px-4 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer">
+          ✓ Mark Wished
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- SUGGESTIONS DRAWER MODAL (MICROSOFT TO DO "MY DAY" SUGGESTIONS)       -->
+  <!-- ===================================================================== -->
+  <div id="suggestions-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <div class="w-full max-w-lg rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#171412] p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-stone-200 dark:border-stone-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
+            <i data-lucide="lightbulb" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold">Suggestions for My Day</h3>
+            <p class="text-xs text-stone-500 dark:text-stone-400">Unfinished tasks & habits you can pull into today's focus</p>
+          </div>
+        </div>
+        <button onclick="toggleSuggestionsModal(false)" class="p-1.5 rounded-lg hover:bg-stone-500/10 text-stone-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="suggestions-list-container" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+        <!-- Populated dynamically -->
+      </div>
+      <div class="mt-5 pt-3 border-t border-stone-200 dark:border-stone-800 flex justify-end">
+        <button onclick="toggleSuggestionsModal(false)" class="px-4 py-2 rounded-xl text-xs font-semibold bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 cursor-pointer">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PC SETUP, MS TO-DO COMPARISON & ANTIGRAVITY PROMPT MODAL              -->
+  <!-- ===================================================================== -->
+  <div id="guide-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <div class="w-full max-w-3xl max-h-[88vh] flex flex-col rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-[#171412] shadow-2xl overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50 dark:bg-stone-900/60">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center">
+            <i data-lucide="laptop" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold">How to Run on Your PC Daily + C Launcher + AI Prompt</h3>
+            <p class="text-xs text-stone-500 dark:text-stone-400">Zero servers required • Works directly as an HTML Desktop App</p>
+          </div>
+        </div>
+        <button onclick="toggleGuideModal(false)" class="p-1.5 rounded-lg hover:bg-stone-500/10 text-stone-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="p-6 overflow-y-auto space-y-6 text-xs sm:text-sm leading-relaxed">
+        
+        <!-- Part 1: Run on PC in 30 Seconds -->
+        <div class="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-2">
+          <h4 class="font-bold text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-2">
+            <span>1. How to Run This on Your PC Every Day (No React/Node Needed!)</span>
+          </h4>
+          <ol class="list-decimal list-inside space-y-1.5 text-stone-700 dark:text-stone-300">
+            <li>Save this code on your PC as <code class="px-1.5 py-0.5 rounded bg-stone-200 dark:bg-stone-800 font-mono">ritual_todo_app.html</code> (on your Desktop or Documents folder).</li>
+            <li><strong>Double-click</strong> <code class="px-1.5 py-0.5 rounded bg-stone-200 dark:bg-stone-800 font-mono">ritual_todo_app.html</code> to open it in Chrome, Edge, or Brave.</li>
+            <li><strong>Make it a standalone PC App Icon:</strong> In Edge or Chrome, click the <strong>3-dot menu (⋮)</strong> → <strong>Apps / Save and Share</strong> → <strong>Install Page as App...</strong> (or <em>Create Shortcut → Open as Window</em>). Pin it to your Windows Taskbar!</li>
+            <li><strong>Your Data Stays Saved:</strong> Every check-in, subtask step, birthday, note, and streak is saved automatically in your browser's <code class="px-1.5 py-0.5 rounded bg-stone-200 dark:bg-stone-800 font-mono">localStorage</code>.</li>
+          </ol>
+        </div>
+
+        <!-- Part 2: Optional C Language Desktop Launcher -->
+        <div class="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/50 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-blue-600 dark:text-blue-400 text-sm">
+              2. Since You Know C & HTML: Build Your Own `.exe` Launcher in C!
+            </h4>
+            <button onclick="copyTextById('c-launcher-code', 'Copied C launcher code!')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-300 hover:bg-blue-500/25 cursor-pointer">
+              Copy C Code
+            </button>
+          </div>
+          <p class="text-xs text-stone-500 dark:text-stone-400">
+            Compile this 12-line C program with GCC (<code class="font-mono">gcc launcher.c -o RitualApp.exe</code>):
+          </p>
+          <pre id="c-launcher-code" class="p-3 rounded-xl bg-stone-900 text-emerald-300 font-mono text-xs overflow-x-auto">#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+
+int main() {
+    printf("Launching Ritual To-Do &amp; Habit Dashboard...\n");
+    system("start msedge --app=\"%cd%\\ritual_todo_app.html\"");
+    return 0;
+}</pre>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50 dark:bg-stone-900/60">
+        <button onclick="resetDemoData()" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 cursor-pointer">
+          Reset to Default Demo Data
+        </button>
+        <button onclick="toggleGuideModal(false)" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+          Got It, Let's Track!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- APPLICATION JAVASCRIPT ENGINE                                         -->
+  <!-- ===================================================================== -->
+  <script>
+    // -----------------------------------------------------------------------
+    // 1. REAL SYSTEM DATE HELPERS
+    // -----------------------------------------------------------------------
+    function formatISODate(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function parseISODate(isoStr) {
+      const [y, m, d] = isoStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function addDays(isoStr, days) {
+      const d = parseISODate(isoStr);
+      d.setDate(d.getDate() + days);
+      return formatISODate(d);
+    }
+
+    function getMondayOfWeek(isoStr) {
+      const d = parseISODate(isoStr);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      d.setDate(diff);
+      return formatISODate(d);
+    }
+
+    const TODAY_ISO = formatISODate(new Date());
+
+    function getWeekDays(mondayIso) {
+      const shortNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const fullNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      return Array.from({ length: 7 }, (_, i) => {
+        const iso = addDays(mondayIso, i);
+        const d = parseISODate(iso);
+        return {
+          iso,
+          shortName: shortNames[i],
+          fullName: fullNames[i],
+          dayNumber: d.getDate(),
+          monthShort: months[d.getMonth()],
+          year: d.getFullYear(),
+          isToday: iso === TODAY_ISO,
+          isFuture: iso > TODAY_ISO
+        };
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. DEFAULT SEED DATA (mark_02 data + Birthdays & EOD Settings)
+    // -----------------------------------------------------------------------
+    const STORAGE_KEY = 'ritual_ms_todo_desktop_v1';
+
+    function createDefaultBirthdays() {
+      const yesterdayIso = addDays(TODAY_ISO, -1);
+      const inThreeDaysIso = addDays(TODAY_ISO, 3);
+      return [
+        {
+          id: 'bday-1',
+          name: "Friend's Birthday (Missed Yesterday — Click Wish!)",
+          birthDate: `2008-${yesterdayIso.slice(5)}`,
+          group: 'Best Friend',
+          phone: '',
+          note: 'Click "Wish / Belated Rescue" to copy or send an instant belated birthday message!',
+          wishedYear: null
+        },
+        {
+          id: 'bday-2',
+          name: 'College Squad Bro (Upcoming Sample)',
+          birthDate: `2008-${inThreeDaysIso.slice(5)}`,
+          group: 'College / Uni',
+          phone: '',
+          note: 'Plan group cake / treat after class',
+          wishedYear: null
+        }
+      ];
+    }
+
+    function createDefaultData() {
+      const buildHabitLogs = (daysBackPatternFn) => {
+        const logs = {};
+        for (let diff = -21; diff <= 0; diff++) {
+          const iso = addDays(TODAY_ISO, diff);
+          if (daysBackPatternFn(diff)) {
+            logs[iso] = true;
+          }
+        }
+        return logs;
+      };
+
+      const defaultLists = [
+        { id: 'list-routine', name: 'Daily Routine & Mindfulness', color: '#10B981', icon: 'leaf' },
+        { id: 'list-coding', name: 'C Language & Web Dev', color: '#3B82F6', icon: 'code-2' },
+        { id: 'list-fitness', name: 'Fitness & Health', color: '#F43F5E', icon: 'dumbbell' },
+        { id: 'list-errands', name: 'Personal & Goals', color: '#8B5CF6', icon: 'Sparkles' }
+      ];
+
+      const defaultItems = [
+        {
+          id: 'item-1',
+          title: 'Morning Hydration + 15m Sunlight Walk',
+          listId: 'list-routine',
+          isHabit: true,
+          repeat: 'daily',
+          target: '500ml water + 15m walk',
+          myDay: true,
+          important: true,
+          completed: false,
+          dueDate: TODAY_ISO,
+          logs: buildHabitLogs((diff) => diff >= -14),
+          steps: [
+            { id: 's-101', title: 'Drink 500ml warm water with electrolytes', completed: true },
+            { id: 's-102', title: '10 mins morning stretching & outdoor light', completed: true }
+          ],
+          notes: 'Starting the morning without checking phone notifications makes a huge difference in focus.'
+        },
+        {
+          id: 'item-2',
+          title: 'Deep Coding Block: C Language & HTML/JS Projects',
+          listId: 'list-coding',
+          isHabit: true,
+          repeat: 'daily',
+          target: '90 mins focused coding',
+          myDay: true,
+          important: true,
+          completed: false,
+          dueDate: TODAY_ISO,
+          logs: buildHabitLogs((diff) => diff < 0 && diff >= -9),
+          steps: [
+            { id: 's-201', title: 'Review C pointers & file I/O exercises', completed: true },
+            { id: 's-202', title: 'Customize Ritual HTML Dashboard on PC', completed: false },
+            { id: 's-203', title: 'Push daily code progress', completed: false }
+          ],
+          notes: 'Focus on building real tools that run locally on my PC.'
+        },
+        {
+          id: 'item-3',
+          title: 'Strength Workout / Zone 2 Run',
+          listId: 'list-fitness',
+          isHabit: true,
+          repeat: 'daily',
+          target: '45 mins',
+          myDay: true,
+          important: false,
+          completed: false,
+          dueDate: TODAY_ISO,
+          logs: buildHabitLogs((diff) => diff === 0 || (diff >= -12 && diff % 4 !== 0)),
+          steps: [
+            { id: 's-301', title: '5 min dynamic warm-up', completed: true },
+            { id: 's-302', title: 'Main workout session (Push/Pull or Run)', completed: true }
+          ],
+          notes: 'Keep heart rate steady and log progressive overload.'
+        },
+        {
+          id: 'item-4',
+          title: 'Read Non-Fiction / Technical Book',
+          listId: 'list-routine',
+          isHabit: true,
+          repeat: 'daily',
+          target: '20 pages',
+          myDay: true,
+          important: false,
+          completed: false,
+          dueDate: TODAY_ISO,
+          logs: buildHabitLogs((diff) => diff < 0 && diff >= -5),
+          steps: [],
+          notes: 'Currently reading: "Atomic Habits" & "The C Programming Language (K&R)".'
+        },
+        {
+          id: 'item-5',
+          title: 'Digital Sunset (No Phone Screens After 10:30 PM)',
+          listId: 'list-routine',
+          isHabit: true,
+          repeat: 'daily',
+          target: 'After 10:30 PM',
+          myDay: false,
+          important: false,
+          completed: false,
+          dueDate: TODAY_ISO,
+          logs: buildHabitLogs((diff) => diff < 0 && diff >= -7),
+          steps: [
+            { id: 's-501', title: 'Place phone on desk charger away from bed', completed: false },
+            { id: 's-502', title: 'Plan top 3 priorities for tomorrow in My Day', completed: false }
+          ],
+          notes: 'Protects deep sleep quality.'
+        },
+        {
+          id: 'item-6',
+          title: 'Install Ritual To-Do as a Desktop App on Windows Taskbar',
+          listId: 'list-coding',
+          isHabit: false,
+          repeat: 'once',
+          target: '5 mins setup',
+          myDay: true,
+          important: true,
+          completed: false,
+          dueDate: TODAY_ISO,
+          logs: {},
+          steps: [
+            { id: 's-601', title: 'Save this file as ritual_todo_app.html on PC', completed: true },
+            { id: 's-602', title: 'Open in Chrome/Edge -> Menu (⋮) -> Apps -> Install as App', completed: false },
+            { id: 's-603', title: 'Test Export Backup (.json) button in header', completed: false }
+          ],
+          notes: 'Click the "PC App & Prompt Guide" button in the top right header for full instructions and C launcher code!'
+        },
+        {
+          id: 'item-7',
+          title: 'Organize Study Folders & Backup Important Code Files',
+          listId: 'list-errands',
+          isHabit: false,
+          repeat: 'once',
+          target: '25 mins',
+          myDay: false,
+          important: true,
+          completed: false,
+          dueDate: addDays(TODAY_ISO, -1),
+          logs: {},
+          steps: [
+            { id: 's-701', title: 'Clean up Desktop downloads folder', completed: false },
+            { id: 's-702', title: 'Organize C practice programs by topic', completed: false }
+          ],
+          notes: 'Overdue from yesterday — click Suggestions in My Day to pull it into today.'
+        }
+      ];
+
+      return {
+        lists: defaultLists,
+        items: defaultItems,
+        birthdays: createDefaultBirthdays(),
+        eodSettings: {
+          enabled: true,
+          time: '21:00',
+          lastNotifiedDate: null,
+          snoozeUntil: null
+        },
+        settings: {
+          darkMode: true,
+          soundEnabled: true,
+          activeView: 'myday', // 'myday' | 'matrix' | 'birthdays' | 'important' | 'planned' | 'all' | listId
+          chartMode: 'completion'
+        }
+      };
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. APPLICATION STATE & LOCALSTORAGE PERSISTENCE
+    // -----------------------------------------------------------------------
+    let appData = loadState();
+    let currentMondayIso = getMondayOfWeek(TODAY_ISO);
+    let selectedMatrixDayIso = TODAY_ISO;
+    let selectedItemId = null;
+    let activeWishBirthdayId = null;
+    let searchQuery = '';
+    let showCompletedAccordion = true;
+
+    let quickAddMyDay = true;
+    let quickAddImportant = false;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.items) && Array.isArray(parsed.lists)) {
+            if (!Array.isArray(parsed.birthdays) || parsed.birthdays.length === 0) {
+              parsed.birthdays = createDefaultBirthdays();
+            }
+            if (!parsed.eodSettings) {
+              parsed.eodSettings = { enabled: true, time: '21:00', lastNotifiedDate: null, snoozeUntil: null };
+            }
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not read localStorage, using default state:', e);
+      }
+      return createDefaultData();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      } catch (e) {
+        console.warn('Could not save to localStorage:', e);
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 4. WEB AUDIO SYNTHESIZER (Completion, Perfect Day & Evening Alert)
+    // -----------------------------------------------------------------------
+    function playSound(type = 'complete') {
+      if (!appData.settings.soundEnabled) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        if (type === 'complete') {
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc1.type = 'sine';
+          osc2.type = 'triangle';
+          osc1.frequency.setValueAtTime(659.25, now);
+          osc1.frequency.exponentialRampToValueAtTime(987.77, now + 0.09);
+          osc2.frequency.setValueAtTime(1318.5, now);
+          osc2.frequency.exponentialRampToValueAtTime(1975.5, now + 0.09);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 0.34);
+          osc2.stop(now + 0.34);
+        } else if (type === 'uncheck') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(330, now + 0.09);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'perfect') {
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.055);
+            gain.gain.setValueAtTime(0.1, now + idx * 0.055);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.38);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.055);
+            osc.stop(now + idx * 0.055 + 0.4);
+          });
+        } else if (type === 'alert') {
+          [587.33, 880, 587.33, 880].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.11);
+            gain.gain.setValueAtTime(0.12, now + idx * 0.11);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.11 + 0.26);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.11);
+            osc.stop(now + idx * 0.11 + 0.28);
+          });
+        }
+      } catch (err) {}
+    }
+
+    function showToast(message, badge = '') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = 'pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl border border-stone-700 bg-[#1C1917] text-[#FAF8F5] text-xs sm:text-sm font-medium transition-all duration-300';
+      el.innerHTML = `
+        ${badge ? `<span class="px-2 py-0.5 text-[11px] font-mono-tabular font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${badge}</span>` : ''}
+        <span>${message}</span>
+      `;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(8px)';
+        setTimeout(() => el.remove(), 250);
+      }, 2800);
+    }
+
+    // -----------------------------------------------------------------------
+    // 5. BIRTHDAY RADAR & YESTERDAY BELATED RESCUE ENGINE
+    // -----------------------------------------------------------------------
+    function getBirthdayStatus(bday) {
+      const todayDate = parseISODate(TODAY_ISO);
+      const [by, bm, bd] = bday.birthDate.split('-').map(Number);
+      const currentYear = todayDate.getFullYear();
+
+      const thisYearBday = new Date(currentYear, bm - 1, bd);
+      const diffDays = Math.round((thisYearBday - todayDate) / 86400000);
+      const isWished = bday.wishedYear === currentYear;
+
+      if (diffDays < 0 && diffDays >= -3 && !isWished) {
+        return {
+          status: 'belated',
+          daysDiff: diffDays,
+          turningAge: currentYear - by,
+          badge: diffDays === -1 ? '🚨 YESTERDAY (Missed!)' : `🚨 ${Math.abs(diffDays)}d ago (Missed!)`
+        };
+      }
+
+      if (diffDays === 0) {
+        return {
+          status: 'today',
+          daysDiff: 0,
+          turningAge: currentYear - by,
+          badge: '🎉 TODAY!'
+        };
+      }
+
+      let nextBday = thisYearBday;
+      let turningAge = currentYear - by;
+      if (diffDays < 0) {
+        nextBday = new Date(currentYear + 1, bm - 1, bd);
+        turningAge = currentYear + 1 - by;
+      }
+      const daysUntil = Math.round((nextBday - todayDate) / 86400000);
+      return {
+        status: daysUntil <= 7 ? 'soon' : 'upcoming',
+        daysDiff: daysUntil,
+        turningAge,
+        badge: daysUntil === 1 ? '⏳ Tomorrow!' : `In ${daysUntil} days`
+      };
+    }
+
+    function getUrgentBirthdays() {
+      const currentYear = new Date().getFullYear();
+      return (appData.birthdays || [])
+        .map((b) => ({ ...b, meta: getBirthdayStatus(b) }))
+        .filter(
+          (b) =>
+            (b.meta.status === 'belated' && b.wishedYear !== currentYear) ||
+            (b.meta.status === 'today' && b.wishedYear !== currentYear) ||
+            b.meta.status === 'soon'
+        )
+        .sort((a, b) => a.meta.daysDiff - b.meta.daysDiff);
+    }
+
+    function handleCreateBirthday(e) {
+      e.preventDefault();
+      const nameInput = document.getElementById('bday-name-input');
+      const dateInput = document.getElementById('bday-date-input');
+      const groupInput = document.getElementById('bday-group-input');
+      const phoneInput = document.getElementById('bday-phone-input');
+      const noteInput = document.getElementById('bday-note-input');
+
+      const name = nameInput.value.trim();
+      const birthDate = dateInput.value;
+      if (!name || !birthDate) {
+        showToast("Please enter your friend's name and birth date.", '⚠️ Required');
+        return;
+      }
+
+      appData.birthdays.push({
+        id: 'bday-' + Date.now(),
+        name,
+        birthDate,
+        group: groupInput.value || 'Best Friend',
+        phone: phoneInput.value.trim(),
+        note: noteInput.value.trim(),
+        wishedYear: null
+      });
+
+      saveState();
+      playSound('complete');
+      showToast(`Added ${name}'s birthday!`, '🎂 Birthday');
+      renderAll();
+    }
+
+    function deleteBirthday(bdayId) {
+      appData.birthdays = appData.birthdays.filter((b) => b.id !== bdayId);
+      saveState();
+      showToast('Removed birthday entry', 'Trash');
+      renderAll();
+    }
+
+    function toggleBirthdayWished(bdayId) {
+      const b = appData.birthdays.find((x) => x.id === bdayId);
+      if (!b) return;
+      const cy = new Date().getFullYear();
+      b.wishedYear = b.wishedYear === cy ? null : cy;
+      saveState();
+      if (b.wishedYear) playSound('complete');
+      renderAll();
+    }
+
+    function openWishStudio(bdayId) {
+      activeWishBirthdayId = bdayId;
+      const b = appData.birthdays.find((x) => x.id === bdayId);
+      if (!b) return;
+      const meta = getBirthdayStatus(b);
+      document.getElementById('wish-modal-title').innerText = `Wish ${b.name}`;
+      setWishTemplate(meta.status === 'belated' ? 'belated' : 'bro');
+      toggleBirthdayWishModal(true);
+    }
+
+    function toggleBirthdayWishModal(open) {
+      const modal = document.getElementById('birthday-wish-modal');
+      if (open) {
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function setWishTemplate(type) {
+      const b = appData.birthdays.find((x) => x.id === activeWishBirthdayId);
+      const firstName = b ? b.name.split(' ')[0] : 'Bro';
+      const box = document.getElementById('wish-message-textarea');
+      if (type === 'belated') {
+        box.value = `Happy belated birthday ${firstName}!! 🎂🔥 Seriously sorry I missed texting you yesterday—my schedule was packed, but I hope you had an awesome day! Let's catch up soon, treat is on me! 🥳`;
+      } else if (type === 'bro') {
+        box.value = `Happy Birthday ${firstName}!! 🎂🔥 Wishing you a legendary year ahead—keep crushing your goals! Party kab de raha hai? 🥳⚡`;
+      } else {
+        box.value = `Wishing you a very Happy Birthday, ${firstName}! 🎉 May this year bring you great health, happiness, and massive success in everything you do! 🎂✨`;
+      }
+    }
+
+    function copyWishMessage() {
+      const box = document.getElementById('wish-message-textarea');
+      navigator.clipboard.writeText(box.value);
+      showToast('Birthday wish copied to clipboard!', '📋 Copied');
+    }
+
+    function sendWhatsAppWish() {
+      const b = appData.birthdays.find((x) => x.id === activeWishBirthdayId);
+      const text = encodeURIComponent(document.getElementById('wish-message-textarea').value);
+      const phone = b && b.phone ? b.phone.replace(/\D/g, '') : '';
+      window.open(phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`, '_blank');
+    }
+
+    function markWishedFromModal() {
+      if (activeWishBirthdayId) {
+        const b = appData.birthdays.find((x) => x.id === activeWishBirthdayId);
+        if (b) b.wishedYear = new Date().getFullYear();
+        saveState();
+        playSound('complete');
+        showToast('Marked as wished for this year!', '✅ Wished');
+        renderAll();
+      }
+      toggleBirthdayWishModal(false);
+    }
+
+    // -----------------------------------------------------------------------
+    // 6. AUTOMATIC END-OF-DAY (EOD) MISSING TASK REMINDER ENGINE
+    // -----------------------------------------------------------------------
+    function getMissingItemsForToday() {
+      const currentYear = new Date().getFullYear();
+      const missingHabits = appData.items.filter((i) => i.isHabit && !isItemCompletedToday(i));
+      const missingTasks = appData.items.filter(
+        (i) => !i.isHabit && !isItemCompletedToday(i) && (i.myDay || i.dueDate === TODAY_ISO)
+      );
+      const missingBirthdays = (appData.birthdays || [])
+        .map((b) => ({ ...b, meta: getBirthdayStatus(b) }))
+        .filter((b) => (b.meta.status === 'belated' || b.meta.status === 'today') && b.wishedYear !== currentYear);
+
+      return { missingHabits, missingTasks, missingBirthdays };
+    }
+
+    function triggerEODCheckNow(isManualTest = false) {
+      const { missingHabits, missingTasks, missingBirthdays } = getMissingItemsForToday();
+      const totalMissing = missingHabits.length + missingTasks.length + missingBirthdays.length;
+
+      playSound('alert');
+
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(
+          totalMissing > 0
+            ? `🌙 ${totalMissing} Missing Items Before Today Ends!`
+            : '👑 All Daily Rituals & Tasks Completed!',
+          {
+            body:
+              totalMissing > 0
+                ? `You have ${missingHabits.length} unchecked daily habits, ${missingTasks.length} tasks, and ${missingBirthdays.length} birthday alerts.`
+                : 'Awesome job! You completed 100% of your daily goals.'
+          }
+        );
+      }
+
+      const listEl = document.getElementById('eod-missing-list');
+      const subEl = document.getElementById('eod-alert-subtitle');
+
+      if (totalMissing === 0) {
+        subEl.innerText = '100% Complete! You have zero missing tasks or habits tonight.';
+        listEl.innerHTML = `
+          <div class="p-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 text-center">
+            <div class="text-3xl mb-2">👑</div>
+            <div class="font-bold text-emerald-600 dark:text-emerald-400">Perfect Day Achieved!</div>
+            <div class="text-xs text-stone-500 dark:text-stone-400 mt-1">All daily habits, My Day tasks, and birthday wishes are complete.</div>
+          </div>
+        `;
+      } else {
+        subEl.innerText = `You still have ${totalMissing} pending item(s) for today. Check off any you finished:`;
+        const rows = [];
+
+        missingBirthdays.forEach((b) => {
+          rows.push(`
+            <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-rose-500/40 bg-rose-500/10">
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-rose-600 dark:text-rose-300">${b.meta.badge}: ${escapeHtml(b.name)}</div>
+                <div class="text-[11px] text-stone-500 dark:text-stone-400">Send a quick birthday or belated wish now</div>
+              </div>
+              <button onclick="toggleEODAlertModal(false);openWishStudio('${b.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white shrink-0 cursor-pointer">
+                💬 Wish Now
+              </button>
+            </div>
+          `);
+        });
+
+        missingHabits.forEach((h) => {
+          const listObj = getListById(h.listId);
+          rows.push(`
+            <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/60">
+              <div class="min-w-0">
+                <div class="text-xs sm:text-sm font-semibold truncate">${escapeHtml(h.title)}</div>
+                <div class="text-[11px] text-amber-500 font-medium">🔁 Daily Habit • ${escapeHtml(listObj.name)}</div>
+              </div>
+              <button onclick="completeItemFromEOD('${h.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 cursor-pointer">
+                ✓ Check Off
+              </button>
+            </div>
+          `);
+        });
+
+        missingTasks.forEach((t) => {
+          const listObj = getListById(t.listId);
+          rows.push(`
+            <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/60">
+              <div class="min-w-0">
+                <div class="text-xs sm:text-sm font-semibold truncate">${escapeHtml(t.title)}</div>
+                <div class="text-[11px] text-stone-400">📌 My Day Task • ${escapeHtml(listObj.name)}</div>
+              </div>
+              <button onclick="completeItemFromEOD('${t.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 cursor-pointer">
+                ✓ Done
+              </button>
+            </div>
+          `);
+        });
+
+        listEl.innerHTML = rows.join('');
+      }
+
+      toggleEODSettingsModal(false);
+      toggleEODAlertModal(true);
+    }
+
+    function completeItemFromEOD(itemId) {
+      toggleItemCompletion(itemId, TODAY_ISO);
+      triggerEODCheckNow(true);
+    }
+
+    function toggleEODAlertModal(open) {
+      const modal = document.getElementById('eod-alert-modal');
+      if (open) {
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function toggleEODSettingsModal(open) {
+      const modal = document.getElementById('eod-settings-modal');
+      if (open) {
+        document.getElementById('eod-enabled-input').checked = !!appData.eodSettings.enabled;
+        document.getElementById('eod-time-input').value = appData.eodSettings.time || '21:00';
+        if ('Notification' in window) {
+          document.getElementById('notif-permission-text').innerText =
+            Notification.permission === 'granted'
+              ? '✅ Desktop Browser Notifications are ACTIVE'
+              : 'Allow browser popups so alerts show over other windows';
+        }
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function saveEODSettings() {
+      appData.eodSettings.enabled = document.getElementById('eod-enabled-input').checked;
+      appData.eodSettings.time = document.getElementById('eod-time-input').value || '21:00';
+      appData.eodSettings.lastNotifiedDate = null;
+      saveState();
+      toggleEODSettingsModal(false);
+      showToast(`Auto EOD Reminder set for ${appData.eodSettings.time}`, '🔔 Saved');
+      renderAll();
+    }
+
+    function snoozeEODReminder(mins) {
+      appData.eodSettings.snoozeUntil = Date.now() + mins * 60000;
+      saveState();
+      toggleEODAlertModal(false);
+      showToast(`Snoozed EOD reminder for ${mins} minutes`, '⏰ Snoozed');
+    }
+
+    function requestDesktopNotificationPermission() {
+      if (!('Notification' in window)) {
+        showToast('Browser does not support desktop notifications.', 'Notice');
+        return;
+      }
+      Notification.requestPermission().then((perm) => {
+        toggleEODSettingsModal(true);
+        if (perm === 'granted') {
+          new Notification('🔔 Ritual To-Do Notifications Enabled!', {
+            body: 'You will get an automatic End-of-Day notification if any tasks or habits are missed.'
+          });
+          showToast('Desktop notifications enabled!', '✅ Active');
+        }
+      });
+    }
+
+    function checkEODBackgroundClock() {
+      if (!appData.eodSettings || !appData.eodSettings.enabled) return;
+      const now = new Date();
+
+      if (appData.eodSettings.snoozeUntil && Date.now() >= appData.eodSettings.snoozeUntil) {
+        appData.eodSettings.snoozeUntil = null;
+        appData.eodSettings.lastNotifiedDate = TODAY_ISO;
+        saveState();
+        triggerEODCheckNow(false);
+        return;
+      }
+
+      if (appData.eodSettings.lastNotifiedDate === TODAY_ISO) return;
+
+      const [targetH, targetM] = (appData.eodSettings.time || '21:00').split(':').map(Number);
+      if (now.getHours() * 60 + now.getMinutes() >= targetH * 60 + targetM) {
+        const { missingHabits, missingTasks, missingBirthdays } = getMissingItemsForToday();
+        if (missingHabits.length + missingTasks.length + missingBirthdays.length > 0) {
+          appData.eodSettings.lastNotifiedDate = TODAY_ISO;
+          saveState();
+          triggerEODCheckNow(false);
+        }
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 7. STREAK & COMPLETION STATUS CALCULATORS
+    // -----------------------------------------------------------------------
+    function isItemCompletedToday(item) {
+      if (item.isHabit) {
+        return !!(item.logs && item.logs[TODAY_ISO]);
+      }
+      return !!item.completed;
+    }
+
+    function calculateItemStreak(item) {
+      if (!item.isHabit) {
+        return { currentStreak: item.completed ? 1 : 0, bestStreak: item.completed ? 1 : 0 };
+      }
+      const logs = item.logs || {};
+      let currentStreak = 0;
+      let cursor = TODAY_ISO;
+
+      if (!logs[cursor]) {
+        const yesterday = addDays(cursor, -1);
+        if (logs[yesterday]) {
+          cursor = yesterday;
+        }
+      }
+
+      while (logs[cursor]) {
+        currentStreak++;
+        cursor = addDays(cursor, -1);
+      }
+
+      const sortedDates = Object.keys(logs).filter((d) => logs[d]).sort();
+      let bestStreak = currentStreak;
+      let temp = 0;
+      let prev = null;
+      for (const iso of sortedDates) {
+        if (!prev || addDays(prev, 1) === iso) {
+          temp++;
+        } else {
+          temp = 1;
+        }
+        if (temp > bestStreak) bestStreak = temp;
+        prev = iso;
+      }
+
+      return { currentStreak, bestStreak };
+    }
+
+    function getListById(listId) {
+      return appData.lists.find((l) => l.id === listId) || appData.lists[0] || {
+        id: 'default',
+        name: 'General',
+        color: '#10B981'
+      };
+    }
+
+    function getSuggestionsItems() {
+      return appData.items.filter((item) => !item.myDay && !isItemCompletedToday(item));
+    }
+
+    // -----------------------------------------------------------------------
+    // 8. CORE INTERACTION HANDLERS (TOGGLE, CREATE, EDIT, STEPS, BACKUP)
+    // -----------------------------------------------------------------------
+    function toggleItemCompletion(itemId, specificDateIso = TODAY_ISO, event = null) {
+      if (event) event.stopPropagation();
+      const item = appData.items.find((i) => i.id === itemId);
+      if (!item) return;
+
+      let becameChecked = false;
+      if (item.isHabit) {
+        if (!item.logs) item.logs = {};
+        becameChecked = !item.logs[specificDateIso];
+        if (becameChecked) {
+          item.logs[specificDateIso] = true;
+        } else {
+          delete item.logs[specificDateIso];
+        }
+      } else {
+        becameChecked = !item.completed;
+        item.completed = becameChecked;
+        if (becameChecked) {
+          item.logs = { ...(item.logs || {}), [TODAY_ISO]: true };
+        } else if (item.logs) {
+          delete item.logs[TODAY_ISO];
+        }
+      }
+
+      saveState();
+
+      const habits = appData.items.filter((i) => i.isHabit);
+      const allHabitsDone = habits.length > 0 && habits.every((h) => h.logs && h.logs[specificDateIso]);
+
+      if (becameChecked) {
+        if (allHabitsDone && item.isHabit) {
+          playSound('perfect');
+          showToast(`Crown unlocked! 100% habits completed for ${specificDateIso === TODAY_ISO ? 'Today' : specificDateIso}!`, '👑 Perfect Day');
+        } else {
+          playSound('complete');
+        }
+      } else {
+        playSound('uncheck');
+      }
+
+      renderAll();
+    }
+
+    function toggleItemStar(itemId, event = null) {
+      if (event) event.stopPropagation();
+      const item = appData.items.find((i) => i.id === itemId);
+      if (!item) return;
+      item.important = !item.important;
+      saveState();
+      renderAll();
+    }
+
+    function toggleItemMyDay(itemId, event = null) {
+      if (event) event.stopPropagation();
+      const item = appData.items.find((i) => i.id === itemId);
+      if (!item) return;
+      item.myDay = !item.myDay;
+      saveState();
+      showToast(
+        item.myDay ? `Added "${item.title}" to My Day` : `Removed from My Day`,
+        item.myDay ? '☀️ My Day' : ''
+      );
+      renderAll();
+    }
+
+    function handleQuickAdd(e) {
+      e.preventDefault();
+      const titleInput = document.getElementById('quick-add-title');
+      const repeatSelect = document.getElementById('quick-add-repeat');
+      const listSelect = document.getElementById('quick-add-list');
+      const dueInput = document.getElementById('quick-add-due');
+      const targetInput = document.getElementById('quick-add-target');
+
+      const title = titleInput.value.trim();
+      if (!title) {
+        titleInput.focus();
+        return;
+      }
+
+      const repeatVal = repeatSelect.value;
+      const isHabit = repeatVal === 'daily' || repeatVal === 'weekdays';
+      const activeView = appData.settings.activeView;
+
+      const newItem = {
+        id: 'item-' + Date.now(),
+        title,
+        listId: listSelect.value || appData.lists[0].id,
+        isHabit,
+        repeat: repeatVal,
+        target: targetInput.value.trim() || (isHabit ? 'Daily ritual' : 'Task goal'),
+        myDay: quickAddMyDay || activeView === 'myday',
+        important: quickAddImportant || activeView === 'important',
+        completed: false,
+        dueDate: dueInput.value || TODAY_ISO,
+        logs: {},
+        steps: [],
+        notes: ''
+      };
+
+      appData.items.unshift(newItem);
+      saveState();
+
+      titleInput.value = '';
+      targetInput.value = '';
+      selectedItemId = newItem.id;
+      playSound('complete');
+      showToast(`Created "${newItem.title}"`, isHabit ? '🔁 Habit' : '📌 Task');
+      renderAll();
+    }
+
+    function handleCreateList(e) {
+      e.preventDefault();
+      const input = document.getElementById('new-list-input');
+      const colorInput = document.getElementById('new-list-color');
+      const name = input.value.trim();
+      if (!name) return;
+
+      const newList = {
+        id: 'list-' + Date.now(),
+        name,
+        color: colorInput.value || '#10B981',
+        icon: 'folder'
+      };
+      appData.lists.push(newList);
+      appData.settings.activeView = newList.id;
+      input.value = '';
+      saveState();
+      showToast(`Created list "${name}"`, '📁 New List');
+      renderAll();
+    }
+
+    function deleteCustomList(listId, event) {
+      if (event) event.stopPropagation();
+      if (appData.lists.length <= 1) {
+        showToast('At least one list must remain.', 'Notice');
+        return;
+      }
+      const targetList = getListById(listId);
+      const fallbackId = appData.lists.find((l) => l.id !== listId).id;
+      appData.items.forEach((item) => {
+        if (item.listId === listId) item.listId = fallbackId;
+      });
+      appData.lists = appData.lists.filter((l) => l.id !== listId);
+      if (appData.settings.activeView === listId) {
+        appData.settings.activeView = 'myday';
+      }
+      saveState();
+      showToast(`Deleted list "${targetList.name}"`, 'Deleted');
+      renderAll();
+    }
+
+    function handleAddStep(event, itemId) {
+      event.preventDefault();
+      const input = document.getElementById('inspector-step-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const item = appData.items.find((i) => i.id === itemId);
+      if (!item) return;
+      if (!item.steps) item.steps = [];
+      item.steps.push({
+        id: 'step-' + Date.now(),
+        title: text,
+        completed: false
+      });
+      input.value = '';
+      saveState();
+      playSound('complete');
+      renderAll();
+    }
+
+    function toggleStepCompleted(itemId, stepId) {
+      const item = appData.items.find((i) => i.id === itemId);
+      if (!item || !item.steps) return;
+      const step = item.steps.find((s) => s.id === stepId);
+      if (!step) return;
+      step.completed = !step.completed;
+      saveState();
+      playSound(step.completed ? 'complete' : 'uncheck');
+      renderAll();
+    }
+
+    function deleteStep(itemId, stepId) {
+      const item = appData.items.find((i) => i.id === itemId);
+      if (!item || !item.steps) return;
+      item.steps = item.steps.filter((s) => s.id !== stepId);
+      saveState();
+      renderAll();
+    }
+
+    function updateInspectorField(itemId, field, value) {
+      const item = appData.items.find((i) => i.id === itemId);
+      if (!item) return;
+
+      if (field === 'repeat') {
+        item.repeat = value;
+        item.isHabit = value === 'daily' || value === 'weekdays';
+      } else {
+        item[field] = value;
+      }
+      saveState();
+      renderAll();
+    }
+
+    function deleteItem(itemId) {
+      const idx = appData.items.findIndex((i) => i.id === itemId);
+      if (idx === -1) return;
+      const removed = appData.items[idx];
+      appData.items.splice(idx, 1);
+      if (selectedItemId === itemId) selectedItemId = null;
+      saveState();
+      showToast(`Deleted "${removed.title}"`, 'Trash');
+      renderAll();
+    }
+
+    function exportDataAsJson() {
+      const dataStr = JSON.stringify(appData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ritual_todo_backup_${TODAY_ISO}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast(`Saved backup file to your PC Downloads!`, '💾 Exported');
+    }
+
+    function importDataFromJson(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported && Array.isArray(imported.items) && Array.isArray(imported.lists)) {
+            appData = imported;
+            if (!appData.birthdays) appData.birthdays = createDefaultBirthdays();
+            if (!appData.eodSettings) appData.eodSettings = { enabled: true, time: '21:00', lastNotifiedDate: null, snoozeUntil: null };
+            saveState();
+            renderAll();
+            showToast('Backup restored successfully!', '✅ Restored');
+          } else {
+            showToast('Invalid backup JSON format.', '⚠️ Error');
+          }
+        } catch (err) {
+          showToast('Could not parse JSON file.', '⚠️ Error');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function resetDemoData() {
+      appData = createDefaultData();
+      selectedItemId = null;
+      saveState();
+      toggleGuideModal(false);
+      showToast('Reset to fresh demo habits, tasks & birthdays!', '🔄 Reset');
+      renderAll();
+    }
+
+    // -----------------------------------------------------------------------
+    // 9. UI STATE HELPERS
+    // -----------------------------------------------------------------------
+    function setActiveView(viewId) {
+      appData.settings.activeView = viewId;
+      saveState();
+      toggleMobileSidebar(false);
+      renderAll();
+    }
+
+    function selectItemForInspector(itemId) {
+      selectedItemId = selectedItemId === itemId ? null : itemId;
+      renderAll();
+    }
+
+    function closeInspector() {
+      selectedItemId = null;
+      renderAll();
+    }
+
+    function toggleTheme() {
+      appData.settings.darkMode = !appData.settings.darkMode;
+      saveState();
+      applyThemeAndSoundUI();
+      renderAll();
+    }
+
+    function toggleSound() {
+      appData.settings.soundEnabled = !appData.settings.soundEnabled;
+      saveState();
+      applyThemeAndSoundUI();
+      showToast(
+        appData.settings.soundEnabled ? 'Completion sound effects ON' : 'Sound muted',
+        appData.settings.soundEnabled ? '🔊 Audio' : '🔇 Muted'
+      );
+    }
+
+    function applyThemeAndSoundUI() {
+      const htmlEl = document.documentElement;
+      if (appData.settings.darkMode) {
+        htmlEl.classList.add('dark');
+      } else {
+        htmlEl.classList.remove('dark');
+      }
+
+      const themeBtn = document.getElementById('theme-toggle-btn');
+      if (themeBtn) {
+        themeBtn.innerHTML = appData.settings.darkMode
+          ? '<i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>'
+          : '<i data-lucide="moon" class="w-4 h-4 text-stone-600"></i>';
+      }
+
+      const soundBtn = document.getElementById('sound-toggle-btn');
+      if (soundBtn) {
+        soundBtn.innerHTML = appData.settings.soundEnabled
+          ? '<i data-lucide="volume-2" class="w-4 h-4 text-emerald-500"></i>'
+          : '<i data-lucide="volume-x" class="w-4 h-4 text-stone-400"></i>';
+      }
+    }
+
+    function toggleQuickAddMyDay() {
+      quickAddMyDay = !quickAddMyDay;
+      const btn = document.getElementById('quick-add-myday-btn');
+      if (quickAddMyDay) {
+        btn.className = 'flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300';
+      } else {
+        btn.className = 'flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer';
+      }
+    }
+
+    function toggleQuickAddStar() {
+      quickAddImportant = !quickAddImportant;
+      const btn = document.getElementById('quick-add-star-btn');
+      if (quickAddImportant) {
+        btn.className = 'flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer bg-rose-500/15 border-rose-500/40 text-rose-600 dark:text-rose-300';
+      } else {
+        btn.className = 'flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer';
+      }
+    }
+
+    function toggleMobileSidebar(open) {
+      const sidebar = document.getElementById('left-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (open) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }
+
+    function toggleSuggestionsModal(forceState = null) {
+      const modal = document.getElementById('suggestions-modal');
+      const isHidden = modal.classList.contains('hidden');
+      const shouldOpen = forceState !== null ? forceState : isHidden;
+      if (shouldOpen) {
+        renderSuggestionsModal();
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function toggleGuideModal(open) {
+      const modal = document.getElementById('guide-modal');
+      if (open) {
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function handleSearchInput(val) {
+      searchQuery = val.trim().toLowerCase();
+      const clearBtn = document.getElementById('clear-search-btn');
+      if (searchQuery) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+      renderMainWorkspace();
+      lucide.createIcons();
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('sidebar-search');
+      input.value = '';
+      handleSearchInput('');
+    }
+
+    function copyTextById(elementId, toastMsg) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      navigator.clipboard.writeText(el.innerText);
+      showToast(toastMsg, '📋 Copied');
+    }
+
+    // -----------------------------------------------------------------------
+    // 10. RENDER ENGINE: SIDEBAR, HEADER, URGENT BIRTHDAY BANNER, KPIS
+    // -----------------------------------------------------------------------
+    function renderSidebar() {
+      const activeView = appData.settings.activeView;
+
+      const myDayCount = appData.items.filter((i) => i.myDay && !isItemCompletedToday(i)).length;
+      const importantCount = appData.items.filter((i) => i.important && !isItemCompletedToday(i)).length;
+      const plannedCount = appData.items.filter((i) => !!i.dueDate && !isItemCompletedToday(i)).length;
+      const habitsCount = appData.items.filter((i) => i.isHabit).length;
+      const allOpenCount = appData.items.filter((i) => !isItemCompletedToday(i)).length;
+      const urgentBdays = getUrgentBirthdays();
+      const bdayCount = urgentBdays.length || (appData.birthdays || []).length;
+
+      const smartViews = [
+        { id: 'myday', name: 'My Day', icon: 'sun', color: 'text-amber-500', count: myDayCount },
+        { id: 'matrix', name: '7-Day Habit Matrix & Chart', icon: 'flame', color: 'text-emerald-500', count: habitsCount },
+        { id: 'birthdays', name: 'Birthdays', icon: 'cake', color: 'text-rose-500', count: bdayCount, alert: urgentBdays.length > 0 },
+        { id: 'important', name: 'Important', icon: 'star', color: 'text-rose-500', count: importantCount },
+        { id: 'planned', name: 'Planned', icon: 'calendar', color: 'text-purple-500', count: plannedCount },
+        { id: 'all', name: 'All Tasks & Habits', icon: 'check-square', color: 'text-blue-500', count: allOpenCount }
+      ];
+
+      const smartNavEl = document.getElementById('smart-views-nav');
+      smartNavEl.innerHTML = smartViews
+        .map((v) => {
+          const isActive = activeView === v.id;
+          return `
+            <button
+              onclick="setActiveView('${v.id}')"
+              class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-emerald-600 text-white shadow-xs font-semibold'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200/70 dark:hover:bg-stone-800/70'
+              }"
+            >
+              <div class="flex items-center gap-3 min-w-0">
+                <i data-lucide="${v.icon}" class="w-4 h-4 shrink-0 ${isActive ? 'text-white' : v.color}"></i>
+                <span class="truncate">${v.name}</span>
+              </div>
+              <span class="font-mono-tabular text-xs px-2 py-0.5 rounded-full ${
+                isActive
+                  ? 'bg-white/20 text-white'
+                  : v.alert
+                  ? 'bg-rose-500 text-white font-bold'
+                  : 'bg-stone-200/80 dark:bg-stone-800 text-stone-600 dark:text-stone-400'
+              }">${v.count}</span>
+            </button>
+          `;
+        })
+        .join('');
+
+      document.getElementById('custom-lists-count').innerText = appData.lists.length;
+      const customListsEl = document.getElementById('custom-lists-nav');
+      customListsEl.innerHTML = appData.lists
+        .map((list) => {
+          const isActive = activeView === list.id;
+          const count = appData.items.filter((i) => i.listId === list.id && !isItemCompletedToday(i)).length;
+          return `
+            <div
+              onclick="setActiveView('${list.id}')"
+              class="group w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 font-semibold'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-stone-200/70 dark:hover:bg-stone-800/70'
+              }"
+            >
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${list.color}"></span>
+                <span class="truncate">${escapeHtml(list.name)}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="font-mono-tabular text-xs opacity-75">${count}</span>
+                ${
+                  appData.lists.length > 1
+                    ? `<button onclick="deleteCustomList('${list.id}', event)" title="Delete list" class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-500/20 hover:text-rose-500 transition-opacity">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                      </button>`
+                    : ''
+                }
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      const quickAddListSelect = document.getElementById('quick-add-list');
+      if (quickAddListSelect) {
+        const currentSelectedList = appData.lists.some((l) => l.id === activeView)
+          ? activeView
+          : quickAddListSelect.value || appData.lists[0].id;
+
+        quickAddListSelect.innerHTML = appData.lists
+          .map(
+            (l) =>
+              `<option value="${l.id}" class="bg-white dark:bg-stone-900" ${
+                l.id === currentSelectedList ? 'selected' : ''
+              }>${escapeHtml(l.name)}</option>`
+          )
+          .join('');
+      }
+
+      // Update EOD status & Header Birthday badge
+      const eodTimeText = appData.eodSettings && appData.eodSettings.enabled ? `Daily at ${appData.eodSettings.time}` : 'Disabled';
+      document.getElementById('sidebar-eod-status').innerText = eodTimeText;
+      document.getElementById('header-eod-label').innerText = appData.eodSettings && appData.eodSettings.enabled ? `EOD ${appData.eodSettings.time}` : 'EOD Off';
+
+      const bdayBadge = document.getElementById('header-bday-badge');
+      const bdayBtn = document.getElementById('header-bday-btn');
+      bdayBadge.innerText = urgentBdays.length > 0 ? `${urgentBdays.length} Alert` : (appData.birthdays || []).length;
+      if (urgentBdays.some((b) => b.meta.status === 'belated' || b.meta.status === 'today')) {
+        bdayBtn.classList.add('pulse-birthday');
+      } else {
+        bdayBtn.classList.remove('pulse-birthday');
+      }
+    }
+
+    function renderHeaderTitle() {
+      const activeView = appData.settings.activeView;
+      const d = parseISODate(TODAY_ISO);
+      const formattedToday = d.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+
+      const titles = {
+        myday: {
+          title: '☀️ My Day',
+          subtitle: `${formattedToday} • Focus on what matters today`
+        },
+        matrix: {
+          title: '🔥 7-Day Habit Matrix & Streak Chart',
+          subtitle: 'Interactive weekly check-in grid & visual momentum analytics'
+        },
+        birthdays: {
+          title: '🎂 Friends’ Birthdays & Belated Rescue',
+          subtitle: 'Yesterday belated rescue, today’s birthdays & 1-click WhatsApp wishes'
+        },
+        important: {
+          title: '⭐ Important',
+          subtitle: 'High-priority starred tasks & keystone daily habits'
+        },
+        planned: {
+          title: '📅 Planned Schedule',
+          subtitle: 'Tasks organized by Overdue, Today, and Upcoming due dates'
+        },
+        all: {
+          title: '☑️ All Tasks & Habits',
+          subtitle: 'Complete master ledger across all custom lists'
+        }
+      };
+
+      let info = titles[activeView];
+      if (!info) {
+        const listObj = getListById(activeView);
+        info = {
+          title: `📁 ${escapeHtml(listObj.name)}`,
+          subtitle: `Custom Microsoft To Do List • Auto-saved locally`
+        };
+      }
+
+      document.getElementById('header-view-title').innerHTML = `
+        <h1 class="text-lg sm:text-xl font-bold tracking-tight">${info.title}</h1>
+        <p class="text-xs text-stone-500 dark:text-stone-400">${info.subtitle}</p>
+      `;
+
+      const suggestionsCount = getSuggestionsItems().length;
+      const badgeEl = document.getElementById('suggestions-badge');
+      if (badgeEl) badgeEl.innerText = suggestionsCount;
+    }
+
+    function renderUrgentBirthdayBanner() {
+      const slot = document.getElementById('urgent-birthday-banner-slot');
+      const activeView = appData.settings.activeView;
+      const urgent = getUrgentBirthdays();
+
+      if (activeView === 'birthdays' || urgent.length === 0) {
+        slot.innerHTML = '';
+        return;
+      }
+
+      slot.innerHTML = `
+        <div class="rounded-2xl border border-rose-500/40 bg-rose-500/5 dark:bg-rose-500/10 p-4 shadow-xs">
+          <div class="flex items-center justify-between flex-wrap gap-2 mb-2.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="cake" class="w-4 h-4 text-rose-500"></i>
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Birthday Reminder Radar (${urgent.length})</span>
+            </div>
+            <button onclick="setActiveView('birthdays')" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">
+              Open Birthdays Section →
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            ${urgent
+              .map(
+                (b) => `
+                <div class="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border border-stone-200/80 dark:border-stone-800 bg-white dark:bg-[#171412]">
+                  <div class="min-w-0">
+                    <span class="text-[11px] font-bold text-rose-500 mr-1.5">${b.meta.badge}</span>
+                    <span class="text-xs sm:text-sm font-semibold truncate">${escapeHtml(b.name)}</span>
+                    <span class="text-[11px] text-stone-400 ml-1">• Turning ${b.meta.turningAge}</span>
+                  </div>
+                  <button onclick="openWishStudio('${b.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shrink-0 cursor-pointer">
+                    💬 Wish / Belated
+                  </button>
+                </div>
+              `
+              )
+              .join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderKPIs() {
+      const myDayItems = appData.items.filter((i) => i.myDay);
+      const myDayDone = myDayItems.filter((i) => isItemCompletedToday(i)).length;
+      const myDayTotal = myDayItems.length;
+      const myDayPct = myDayTotal > 0 ? Math.round((myDayDone / myDayTotal) * 100) : 0;
+
+      const habits = appData.items.filter((i) => i.isHabit);
+      const weekDays = getWeekDays(currentMondayIso);
+      const totalPossibleChecks = habits.length * 7;
+      let totalWeekChecks = 0;
+      let perfectDaysCount = 0;
+
+      weekDays.forEach((day) => {
+        const doneOnDay = habits.filter((h) => h.logs && h.logs[day.iso]).length;
+        totalWeekChecks += doneOnDay;
+        if (habits.length > 0 && doneOnDay === habits.length) perfectDaysCount++;
+      });
+
+      const weeklyPct = totalPossibleChecks > 0 ? Math.round((totalWeekChecks / totalPossibleChecks) * 100) : 0;
+
+      let overallStreak = 0;
+      let cursor = TODAY_ISO;
+      const threshold = Math.max(1, Math.ceil(habits.length * 0.65));
+      const countHabitsOn = (iso) => habits.filter((h) => h.logs && h.logs[iso]).length;
+
+      if (countHabitsOn(cursor) < threshold) {
+        const yesterday = addDays(cursor, -1);
+        if (countHabitsOn(yesterday) >= threshold) cursor = yesterday;
+      }
+      while (habits.length > 0 && countHabitsOn(cursor) >= threshold) {
+        overallStreak++;
+        cursor = addDays(cursor, -1);
+      }
+
+      const bestSingleStreak = habits.reduce((max, h) => {
+        const { bestStreak } = calculateItemStreak(h);
+        return Math.max(max, bestStreak);
+      }, 0);
+
+      const circumference = 2 * Math.PI * 22;
+      const dashOffset = circumference * (1 - myDayPct / 100);
+
+      document.getElementById('kpi-strip').innerHTML = `
+        <!-- Card 1: My Day Progress -->
+        <div onclick="setActiveView('myday')" class="cursor-pointer rounded-2xl p-4 border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#171412] flex items-center justify-between hover:border-emerald-500/40 transition-all">
+          <div>
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-stone-400">My Day Progress</span>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span class="text-2xl sm:text-3xl font-bold font-mono-tabular">${myDayDone}/${myDayTotal}</span>
+              <span class="text-xs font-mono-tabular font-semibold text-emerald-500">${myDayPct}% done</span>
+            </div>
+            <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
+              ${myDayDone === myDayTotal && myDayTotal > 0 ? '🎉 All My Day goals complete!' : 'Click to focus on today’s tasks'}
+            </p>
+          </div>
+          <div class="relative w-14 h-14 flex items-center justify-center shrink-0">
+            <svg class="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+              <circle cx="28" cy="28" r="22" fill="none" stroke="currentColor" class="text-stone-200 dark:text-stone-800" stroke-width="5" />
+              <circle cx="28" cy="28" r="22" fill="none" stroke="#10B981" stroke-width="5" stroke-linecap="round" stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}" />
+            </svg>
+            <i data-lucide="sun" class="w-4 h-4 text-amber-500 absolute"></i>
+          </div>
+        </div>
+
+        <!-- Card 2: Active Daily Consistency Streak -->
+        <div onclick="setActiveView('matrix')" class="cursor-pointer rounded-2xl p-4 border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#171412] flex items-center justify-between hover:border-amber-500/40 transition-all">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-stone-400">Consistency Streak</span>
+              <span class="px-2 py-0.2 text-[10px] font-mono-tabular font-semibold rounded-full bg-amber-500/15 text-amber-500">Record: ${bestSingleStreak}d</span>
+            </div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span class="text-2xl sm:text-3xl font-bold font-mono-tabular">${overallStreak}</span>
+              <span class="text-sm font-semibold text-amber-500">Consecutive Days</span>
+            </div>
+            <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
+              Days hitting ≥65% daily habits without breaking chain
+            </p>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+            <i data-lucide="flame" class="w-6 h-6"></i>
+          </div>
+        </div>
+
+        <!-- Card 3: Weekly Matrix Rate -->
+        <div onclick="setActiveView('matrix')" class="cursor-pointer rounded-2xl p-4 border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#171412] flex items-center justify-between hover:border-emerald-500/40 transition-all">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-stone-400">Weekly Habit Score</span>
+              <span class="px-2 py-0.2 text-[10px] font-mono-tabular font-semibold rounded-full bg-emerald-500/15 text-emerald-500">👑 ${perfectDaysCount} Perfect</span>
+            </div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span class="text-2xl sm:text-3xl font-bold font-mono-tabular">${weeklyPct}%</span>
+              <span class="text-xs font-mono-tabular text-stone-400">${totalWeekChecks}/${totalPossibleChecks} checks</span>
+            </div>
+            <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
+              Click to open 7-Day Matrix & Weekly Chart
+            </p>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0">
+            <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+          </div>
+        </div>
+      `;
+    }
+
+    // -----------------------------------------------------------------------
+    // 11. RENDER BIRTHDAYS VIEW (Styled in mark_02 Warm Stone & Emerald UI)
+    // -----------------------------------------------------------------------
+    function renderBirthdaysViewHtml() {
+      const currentYear = new Date().getFullYear();
+      const enriched = (appData.birthdays || [])
+        .map((b) => ({ ...b, meta: getBirthdayStatus(b) }))
+        .sort((a, b) => a.meta.daysDiff - b.meta.daysDiff);
+
+      return `
+        <!-- Add Friend's Birthday Creator Card -->
+        <div class="rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#171412] p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h2 class="text-base font-bold tracking-tight flex items-center gap-2">
+                <span>🎂 Add Friend's Birthday</span>
+              </h2>
+              <p class="text-xs text-stone-500 dark:text-stone-400">Never forget a birthday again — automatically flags Yesterday (Belated), Today & Upcoming</p>
+            </div>
+          </div>
+
+          <form onsubmit="handleCreateBirthday(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+            <input
+              id="bday-name-input"
+              type="text"
+              placeholder="Friend's Name *"
+              class="px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <input
+              id="bday-date-input"
+              type="date"
+              class="px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 font-mono-tabular focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <select
+              id="bday-group-input"
+              class="px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="Best Friend">🔥 Best Friend</option>
+              <option value="College / Uni">🎓 College / Uni</option>
+              <option value="School Friend">🏫 School Friend</option>
+              <option value="Football / Gym">⚽ Football / Gym</option>
+              <option value="Family">🏠 Family</option>
+            </select>
+            <input
+              id="bday-phone-input"
+              type="text"
+              placeholder="WhatsApp # (e.g. 919876543210)"
+              class="px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 font-mono-tabular focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <div class="flex gap-2">
+              <input
+                id="bday-note-input"
+                type="text"
+                placeholder="Gift / Note"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <button
+                type="submit"
+                class="px-4 py-2.5 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 cursor-pointer"
+              >
+                + Save
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Birthday Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ${enriched
+            .map((b) => {
+              const isUrgent = b.meta.status === 'belated' || b.meta.status === 'today';
+              const isWished = b.wishedYear === currentYear;
+
+              return `
+                <div class="rounded-2xl border p-5 flex flex-col justify-between gap-4 transition-all ${
+                  isUrgent && !isWished
+                    ? 'border-rose-500/50 bg-rose-500/5 dark:bg-rose-500/10'
+                    : 'border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#171412]'
+                }">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono-tabular font-bold ${
+                          b.meta.status === 'belated'
+                            ? 'bg-rose-500 text-white'
+                            : b.meta.status === 'today'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                        }">${b.meta.badge}</span>
+                        <span class="text-xs font-medium text-stone-500 dark:text-stone-400">${escapeHtml(b.group)}</span>
+                        ${
+                          isWished
+                            ? '<span class="text-xs font-semibold text-emerald-500">✓ Wished This Year</span>'
+                            : ''
+                        }
+                      </div>
+                      <h3 class="text-base font-bold mt-2">${escapeHtml(b.name)}</h3>
+                      <p class="text-xs text-stone-500 dark:text-stone-400 mt-0.5 font-mono-tabular">
+                        📅 Born: ${b.birthDate} • Turning <strong>${b.meta.turningAge}</strong>
+                      </p>
+                      ${
+                        b.note
+                          ? `<p class="text-xs text-stone-600 dark:text-stone-300 mt-2 px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-900 border border-stone-200/70 dark:border-stone-800">💡 ${escapeHtml(b.note)}</p>`
+                          : ''
+                      }
+                    </div>
+                    <button onclick="deleteBirthday('${b.id}')" class="p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer" title="Delete birthday">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+
+                  <div class="flex items-center gap-2 pt-3 border-t border-stone-200/80 dark:border-stone-800">
+                    <button
+                      onclick="openWishStudio('${b.id}')"
+                      class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                    >
+                      💬 Send Wish / Belated Rescue
+                    </button>
+                    <button
+                      onclick="toggleBirthdayWished('${b.id}')"
+                      class="py-2 px-3 rounded-xl text-xs font-semibold border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+                    >
+                      ${isWished ? 'Undo' : '✓ Mark Wished'}
+                    </button>
+                  </div>
+                </div>
+              `;
+            })
+            .join('')}
+        </div>
+      `;
+    }
+
+    // -----------------------------------------------------------------------
+    // 12. RENDER TASK CARD (MICROSOFT TO DO ITEM ROW WITH STEPS & BADGES)
+    // -----------------------------------------------------------------------
+    function renderTaskCardHtml(item) {
+      const isDone = isItemCompletedToday(item);
+      const listObj = getListById(item.listId);
+      const { currentStreak } = calculateItemStreak(item);
+      const stepsTotal = (item.steps || []).length;
+      const stepsDone = (item.steps || []).filter((s) => s.completed).length;
+      const isSelected = selectedItemId === item.id;
+      const isOverdue = !isDone && item.dueDate && item.dueDate < TODAY_ISO;
+
+      return `
+        <div
+          onclick="selectItemForInspector('${item.id}')"
+          class="group flex items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer ${
+            isSelected
+              ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-xs'
+              : 'border-stone-200/80 dark:border-stone-800/90 bg-white dark:bg-[#171412] hover:border-stone-300 dark:hover:border-stone-700'
+          }"
+        >
+          <div class="flex items-center gap-3.5 min-w-0 flex-1">
+            <button
+              type="button"
+              onclick="toggleItemCompletion('${item.id}', '${TODAY_ISO}', event)"
+              title="${isDone ? 'Mark incomplete' : 'Complete item'}"
+              class="w-6 h-6 ${item.isHabit ? 'rounded-lg' : 'rounded-full'} border-2 flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+                isDone
+                  ? 'animate-check-pop border-transparent text-white'
+                  : 'border-stone-300 dark:border-stone-600 hover:border-emerald-500'
+              }"
+              style="${isDone ? `background-color: ${listObj.color}` : ''}"
+            >
+              ${isDone ? '<i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>' : ''}
+            </button>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-semibold truncate ${isDone ? 'line-through text-stone-400 dark:text-stone-500' : ''}">
+                  ${escapeHtml(item.title)}
+                </span>
+                ${
+                  item.isHabit
+                    ? `<span class="text-[10px] font-mono-tabular font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">🔥 ${currentStreak}d streak</span>`
+                    : ''
+                }
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2.5 mt-1 text-[11px] text-stone-500 dark:text-stone-400">
+                <span class="inline-flex items-center gap-1 font-medium" style="color: ${listObj.color}">
+                  <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${listObj.color}"></span>
+                  ${escapeHtml(listObj.name)}
+                </span>
+
+                ${
+                  stepsTotal > 0
+                    ? `<span class="inline-flex items-center gap-1 font-mono-tabular px-1.5 py-0.2 rounded bg-stone-100 dark:bg-stone-800 ${
+                        stepsDone === stepsTotal ? 'text-emerald-500 font-semibold' : ''
+                      }">
+                        <i data-lucide="check-circle-2" class="w-3 h-3"></i>
+                        ${stepsDone} of${stepsTotal} steps
+                      </span>`
+                    : ''
+                }
+
+                ${
+                  item.myDay
+                    ? `<span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
+                        <i data-lucide="sun" class="w-3 h-3"></i> My Day
+                      </span>`
+                    : ''
+                }
+
+                ${
+                  item.dueDate
+                    ? `<span class="inline-flex items-center gap-1 font-mono-tabular ${
+                        isOverdue ? 'text-rose-500 font-semibold' : ''
+                      }">
+                        <i data-lucide="calendar" class="w-3 h-3"></i>
+                        ${item.dueDate === TODAY_ISO ? 'Today' : item.dueDate}
+                        ${isOverdue ? '(Overdue)' : ''}
+                      </span>`
+                    : ''
+                }
+
+                ${
+                  item.target
+                    ? `<span class="text-stone-400">• ${escapeHtml(item.target)}</span>`
+                    : ''
+                }
+
+                ${
+                  item.notes
+                    ? `<span title="Has notes"><i data-lucide="file-text" class="w-3 h-3 text-stone-400"></i></span>`
+                    : ''
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onclick="toggleItemMyDay('${item.id}', event)"
+              title="${item.myDay ? 'Remove from My Day' : 'Add to My Day'}"
+              class="p-2 rounded-xl transition-colors cursor-pointer ${
+                item.myDay
+                  ? 'text-amber-500 bg-amber-500/10'
+                  : 'text-stone-400 opacity-0 group-hover:opacity-100 hover:bg-stone-100 dark:hover:bg-stone-800'
+              }"
+            >
+              <i data-lucide="sun" class="w-4 h-4"></i>
+            </button>
+
+            <button
+              type="button"
+              onclick="toggleItemStar('${item.id}', event)"
+              title="Mark Important"
+              class="p-2 rounded-xl transition-colors cursor-pointer ${
+                item.important
+                  ? 'text-rose-500'
+                  : 'text-stone-400 hover:text-rose-400 hover:bg-stone-100 dark:hover:bg-stone-800'
+              }"
+            >
+              <i data-lucide="star" class="w-4 h-4 ${item.important ? 'fill-rose-500' : ''}"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // -----------------------------------------------------------------------
+    // 13. RENDER 7-DAY HABIT MATRIX & WEEKLY STREAK SVG CHART
+    // -----------------------------------------------------------------------
+    function renderHabitMatrixAndChartHtml(filteredHabits) {
+      const weekDays = getWeekDays(currentMondayIso);
+      const isThisWeek = currentMondayIso === getMondayOfWeek(TODAY_ISO);
+      const firstDay = weekDays[0];
+      const lastDay = weekDays[6];
+      const rangeLabel = `${firstDay.monthShort} ${firstDay.dayNumber} – ${lastDay.monthShort} ${lastDay.dayNumber}, ${lastDay.year}`;
+
+      const dailyStats = weekDays.map((day) => {
+        const doneCount = filteredHabits.filter((h) => h.logs && h.logs[day.iso]).length;
+        const total = filteredHabits.length;
+        const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+        const isPerfect = total > 0 && doneCount === total;
+
+        const listBreakdown = appData.lists
+          .map((list) => {
+            const c = filteredHabits.filter(
+              (h) => h.listId === list.id && h.logs && h.logs[day.iso]
+            ).length;
+            return { ...list, count: c };
+          })
+          .filter((l) => l.count > 0);
+
+        return {
+          ...day,
+          doneCount,
+          total,
+          pct,
+          isPerfect,
+          listBreakdown
+        };
+      });
+
+      const chartMode = appData.settings.chartMode || 'completion';
+
+      return `
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+          
+          <!-- LEFT 8 COLS: 7-DAY HABIT CHECK-IN MATRIX -->
+          <div class="xl:col-span-8 rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#171412] overflow-hidden shadow-xs">
+            <div class="px-5 py-4 border-b border-stone-200/80 dark:border-stone-800 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="text-base font-bold tracking-tight">7-Day Interactive Habit Matrix</h2>
+                <p class="text-xs text-stone-500 dark:text-stone-400">Click any cell to log or uncheck • Click a habit title to open Steps & Notes</p>
+              </div>
+
+              <div class="flex items-center gap-1.5 rounded-xl border border-stone-200 dark:border-stone-800 p-1 bg-stone-50 dark:bg-stone-900">
+                <button onclick="shiftMatrixWeek(-7)" class="p-1.5 rounded-lg hover:bg-stone-200/60 dark:hover:bg-stone-800 cursor-pointer" title="Previous Week">
+                  <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+                <span class="px-2.5 text-xs font-mono-tabular font-semibold">${rangeLabel}</span>
+                <button onclick="shiftMatrixWeek(7)" class="p-1.5 rounded-lg hover:bg-stone-200/60 dark:hover:bg-stone-800 cursor-pointer" title="Next Week">
+                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+                ${
+                  !isThisWeek
+                    ? `<button onclick="resetMatrixToCurrentWeek()" class="px-2 py-1 text-[11px] font-semibold rounded-lg bg-emerald-500/15 text-emerald-500 cursor-pointer">Today</button>`
+                    : ''
+                }
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full border-collapse min-w-[640px]">
+                <thead>
+                  <tr class="border-b border-stone-200/80 dark:border-stone-800 bg-stone-100/70 dark:bg-stone-900/60 text-left">
+                    <th class="py-3 pl-5 pr-3 text-xs font-semibold uppercase tracking-wider text-stone-500 w-[240px]">Daily Ritual / Habit</th>
+                    ${dailyStats
+                      .map(
+                        (day) => `
+                        <th
+                          onclick="selectMatrixDay('${day.iso}')"
+                          class="py-2.5 px-1.5 text-center cursor-pointer transition-colors ${
+                            day.isToday
+                              ? 'bg-emerald-500/10'
+                              : selectedMatrixDayIso === day.iso
+                              ? 'bg-stone-200/60 dark:bg-stone-800/60'
+                              : ''
+                          }"
+                        >
+                          <div class="flex flex-col items-center gap-0.5">
+                            <span class="text-[10px] font-semibold uppercase tracking-wider ${ day.isToday ? 'text-emerald-500 font-bold' : 'text-stone-400' }">${day.shortName}</span>
+                            <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono-tabular font-bold ${ day.isToday ? 'bg-emerald-600 text-white' : selectedMatrixDayIso === day.iso ? 'bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900' : '' }">${day.dayNumber}</span>
+                            <span class="text-[10px] font-mono-tabular text-stone-400">
+                              ${day.isPerfect ? '👑' : `${day.pct}%`}
+                            </span>
+                          </div>
+                        </th>
+                      `
+                      )
+                      .join('')}
+                    <th class="py-3 pr-5 pl-2 text-right text-xs font-semibold uppercase tracking-wider text-stone-500 w-[95px]">Streak</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-200/60 dark:divide-stone-800/80">
+                  ${
+                    filteredHabits.length === 0
+                      ? `<tr><td colspan="9" class="py-10 text-center text-sm text-stone-400">No recurring habits found. Use the Quick-Add bar above with "🔁 Daily Habit" selected!</td></tr>`
+                      : filteredHabits
+                          .map((habit) => {
+                            const listObj = getListById(habit.listId);
+                            const { currentStreak } = calculateItemStreak(habit);
+                            const weekDoneCount = weekDays.filter((d) => habit.logs && habit.logs[d.iso]).length;
+                            const stepsCount = (habit.steps || []).length;
+
+                            return `
+                              <tr class="hover:bg-stone-50/80 dark:hover:bg-stone-900/40 transition-colors">
+                                <td onclick="selectItemForInspector('${habit.id}')" class="py-3.5 pl-5 pr-3 cursor-pointer">
+                                  <div class="flex items-center gap-2.5">
+                                    <span class="w-2.5 h-8 rounded-full shrink-0" style="background-color: ${listObj.color}"></span>
+                                    <div class="min-w-0">
+                                      <div class="text-sm font-semibold truncate flex items-center gap-1.5">
+                                        <span>${escapeHtml(habit.title)}</span>${habit.important ? '<span class="text-rose-500 text-xs">★</span>' : ''}
+                                      </div>
+                                      <div class="text-[11px] text-stone-400 flex items-center gap-2">
+                                        <span>${escapeHtml(listObj.name)}</span>${stepsCount > 0 ? `<span>• ${stepsCount} steps</span>` : ''}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                ${weekDays
+                                  .map((day) => {
+                                    const checked = !!(habit.logs && habit.logs[day.iso]);
+                                    return `
+                                      <td class="py-2.5 px-1.5 text-center ${day.isToday ? 'bg-emerald-500/5' : ''}">
+                                        <button
+                                          type="button"
+                                          onclick="toggleItemCompletion('${habit.id}', '${day.iso}', event)"
+                                          class="w-9 h-9 mx-auto rounded-xl flex items-center justify-center border transition-all cursor-pointer ${
+                                            checked
+                                              ? 'animate-check-pop text-white border-transparent shadow-xs'
+                                              : 'bg-stone-50 dark:bg-stone-900 border-stone-300 dark:border-stone-700 hover:border-emerald-500'
+                                          }"
+                                          style="${checked ? `background-color: ${listObj.color}` : ''}"
+                                        >
+                                          ${checked ? '<i data-lucide="check" class="w-4 h-4 stroke-[3]"></i>' : ''}
+                                        </button>
+                                      </td>
+                                    `;
+                                  })
+                                  .join('')}
+                                <td class="py-3.5 pr-5 pl-2 text-right font-mono-tabular">
+                                  <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                    currentStreak >= 7
+                                      ? 'bg-amber-500/15 text-amber-500'
+                                      : currentStreak > 0
+                                      ? 'bg-emerald-500/15 text-emerald-500'
+                                      : 'bg-stone-500/10 text-stone-400'
+                                  }">
+                                    🔥 ${currentStreak}d
+                                  </div>
+                                  <div class="text-[10px] text-stone-400 mt-0.5">${weekDoneCount}/7 wk</div>
+                                </td>
+                              </tr>
+                            `;
+                          })
+                          .join('')
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- RIGHT 4 COLS: INTERACTIVE WEEKLY STREAK SVG CHART -->
+          <div class="xl:col-span-4 rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-[#171412] p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <h3 class="text-base font-bold tracking-tight">Weekly Streak Chart</h3>
+                <p class="text-xs text-stone-500 dark:text-stone-400">Daily completion rate vs 65% streak line</p>
+              </div>
+              <div class="flex rounded-lg p-0.5 text-xs border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-900">
+                <button
+                  onclick="setChartMode('completion')"
+                  class="px-2.5 py-1 rounded-md font-medium cursor-pointer ${
+                    chartMode === 'completion' ? 'bg-white dark:bg-stone-800 shadow-2xs font-semibold' : 'text-stone-500'
+                  }"
+                >Rate %</button>
+                <button
+                  onclick="setChartMode('categories')"
+                  class="px-2.5 py-1 rounded-md font-medium cursor-pointer ${
+                    chartMode === 'categories' ? 'bg-white dark:bg-stone-800 shadow-2xs font-semibold' : 'text-stone-500'
+                  }"
+                >By List</button>
+              </div>
+            </div>
+
+            <div class="pt-2 select-none">
+              <svg class="w-full h-52 overflow-visible" viewBox="0 0 350 185">
+                <line x1="28" y1="20" x2="340" y2="20" stroke="#57534E" stroke-opacity="0.25" stroke-dasharray="3 3" />
+                <text x="0" y="24" font-size="9" fill="#78716C" class="font-mono-tabular">100%</text>
+
+                <line x1="28" y1="${20 + 125 * 0.35}" x2="340" y2="${20 + 125 * 0.35}" stroke="#F59E0B" stroke-width="1" stroke-dasharray="4 3" opacity="0.8" />
+                <text x="0" y="${24 + 125 * 0.35}" font-size="9" fill="#F59E0B" class="font-mono-tabular">65%</text>
+
+                <line x1="28" y1="145" x2="340" y2="145" stroke="#57534E" stroke-opacity="0.4" />
+                <text x="6" y="148" font-size="9" fill="#78716C" class="font-mono-tabular">0%</text>
+
+                ${dailyStats
+                  .map((day, idx) => {
+                    const colX = 42 + idx * 43;
+                    const barW = 26;
+                    const maxH = 125;
+                    const barH = Math.max(4, (day.pct / 100) * maxH);
+                    const barY = 145 - barH;
+
+                    let barsSvg = '';
+                    if (chartMode === 'completion') {
+                      const fill = day.isPerfect
+                        ? '#10B981'
+                        : day.pct >= 65
+                        ? '#34D399'
+                        : day.pct > 0
+                        ? '#F59E0B'
+                        : 'rgba(120,113,108,0.2)';
+                      barsSvg = `<rect x="${colX}" y="${barY}" width="${barW}" height="${barH}" rx="6" fill="${fill}" />`;
+                    } else {
+                      let curY = 145;
+                      const tot = Math.max(1, day.total);
+                      barsSvg = day.listBreakdown
+                        .map((seg) => {
+                          const segH = (seg.count / tot) * maxH;
+                          curY -= segH;
+                          return `<rect x="${colX}" y="${curY}" width="${barW}" height="${Math.max(2, segH - 1)}" rx="3" fill="${seg.color}" />`;
+                        })
+                        .join('');
+                    }
+
+                    return `
+                      <g class="cursor-pointer" onclick="selectMatrixDay('${day.iso}')">
+                        <rect x="${colX}" y="20" width="${barW}" height="${maxH}" rx="6" fill="rgba(120,113,108,0.08)" />
+                        ${barsSvg}
+                        <text x="${colX + barW / 2}" y="${Math.max(14, barY - 5)}" text-anchor="middle" font-size="9.5" font-weight="600" fill="${ day.isToday ? '#10B981' : '#A8A29E' }" class="font-mono-tabular">${day.pct}%</text>
+                        <text x="${colX + barW / 2}" y="162" text-anchor="middle" font-size="10.5" font-weight="${
+                          day.isToday ? '700' : '500'
+                        }" fill="${day.isToday ? '#10B981' : '#78716C'}">${day.shortName}</text>
+                      </g>
+                    `;
+                  })
+                  .join('')}
+
+                ${
+                  chartMode === 'completion'
+                    ? `<polyline fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${dailyStats
+                        .map((d, i) => `${42 + i * 43 + 13},${145 - (d.pct / 100) * 125}`)
+                        .join(' ')}" />`
+                    : ''
+                }
+              </svg>
+            </div>
+
+            <div class="pt-3 border-t border-stone-200/70 dark:border-stone-800 flex items-center justify-between text-xs text-stone-500">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-xs bg-emerald-500"></span> 100% Perfect Day</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-xs bg-amber-500"></span> ≥65% Streak Line</span>
+            </div>
+          </div>
+
+        </div>
+      `;
+    }
+
+    function shiftMatrixWeek(daysDelta) {
+      currentMondayIso = addDays(currentMondayIso, daysDelta);
+      renderAll();
+    }
+
+    function resetMatrixToCurrentWeek() {
+      currentMondayIso = getMondayOfWeek(TODAY_ISO);
+      selectedMatrixDayIso = TODAY_ISO;
+      renderAll();
+    }
+
+    function selectMatrixDay(iso) {
+      selectedMatrixDayIso = iso;
+      renderAll();
+    }
+
+    function setChartMode(mode) {
+      appData.settings.chartMode = mode;
+      saveState();
+      renderAll();
+    }
+
+    // -----------------------------------------------------------------------
+    // 14. RENDER MAIN WORKSPACE BY ACTIVE VIEW
+    // -----------------------------------------------------------------------
+    function renderMainWorkspace() {
+      const container = document.getElementById('main-view-container');
+      const quickAddSection = document.getElementById('quick-add-section');
+      const activeView = appData.settings.activeView;
+
+      if (activeView === 'birthdays') {
+        if (quickAddSection) quickAddSection.classList.add('hidden');
+        container.innerHTML = renderBirthdaysViewHtml();
+        return;
+      } else {
+        if (quickAddSection) quickAddSection.classList.remove('hidden');
+      }
+
+      let pool = appData.items.filter((item) => {
+        if (!searchQuery) return true;
+        const inTitle = item.title.toLowerCase().includes(searchQuery);
+        const inNotes = (item.notes || '').toLowerCase().includes(searchQuery);
+        const inSteps = (item.steps || []).some((s) => s.title.toLowerCase().includes(searchQuery));
+        return inTitle || inNotes || inSteps;
+      });
+
+      if (activeView === 'matrix') {
+        const habits = pool.filter((i) => i.isHabit);
+        container.innerHTML = renderHabitMatrixAndChartHtml(habits);
+        return;
+      }
+
+      let viewItems = pool;
+      if (activeView === 'myday') {
+        viewItems = pool.filter((i) => i.myDay);
+      } else if (activeView === 'important') {
+        viewItems = pool.filter((i) => i.important);
+      } else if (activeView === 'planned') {
+        viewItems = pool.filter((i) => !!i.dueDate);
+      } else if (activeView !== 'all') {
+        viewItems = pool.filter((i) => i.listId === activeView);
+      }
+
+      if (activeView === 'planned') {
+        const overdue = viewItems.filter((i) => !isItemCompletedToday(i) && i.dueDate < TODAY_ISO);
+        const dueToday = viewItems.filter((i) => !isItemCompletedToday(i) && i.dueDate === TODAY_ISO);
+        const upcoming = viewItems.filter((i) => !isItemCompletedToday(i) && i.dueDate > TODAY_ISO);
+        const completed = viewItems.filter((i) => isItemCompletedToday(i));
+
+        container.innerHTML = `
+          ${
+            overdue.length > 0
+              ? `<div class="space-y-2">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-rose-500 px-1">Overdue (${overdue.length})</h3>
+                  <div class="space-y-2">${overdue.map(renderTaskCardHtml).join('')}</div>
+                </div>`
+              : ''
+          }
+          <div class="space-y-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-500 px-1">Due Today (${dueToday.length})</h3>
+            <div class="space-y-2">
+              ${dueToday.length > 0 ? dueToday.map(renderTaskCardHtml).join('') : '<p class="text-xs text-stone-400 px-1">Nothing due today.</p>'}
+            </div>
+          </div>
+          <div class="space-y-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-purple-500 px-1">Upcoming (${upcoming.length})</h3>
+            <div class="space-y-2">
+              ${upcoming.length > 0 ? upcoming.map(renderTaskCardHtml).join('') : '<p class="text-xs text-stone-400 px-1">No upcoming scheduled tasks.</p>'}
+            </div>
+          </div>
+          ${
+            completed.length > 0
+              ? `<div class="space-y-2 pt-3">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-stone-400 px-1">Completed Today (${completed.length})</h3>
+                  <div class="space-y-2 opacity-80">${completed.map(renderTaskCardHtml).join('')}</div>
+                </div>`
+              : ''
+          }
+        `;
+        return;
+      }
+
+      const openItems = viewItems.filter((i) => !isItemCompletedToday(i));
+      const completedItems = viewItems.filter((i) => isItemCompletedToday(i));
+
+      container.innerHTML = `
+        <div class="space-y-2.5">
+          ${
+            openItems.length === 0
+              ? `<div class="rounded-2xl border border-dashed border-stone-300 dark:border-stone-800 p-8 text-center">
+                  <p class="text-sm font-semibold text-stone-600 dark:text-stone-300">All caught up in this view!</p>
+                  <p class="text-xs text-stone-400 mt-1">Add a new task above or check Suggestions 💡 to pull items into My Day.</p>
+                </div>`
+              : openItems.map(renderTaskCardHtml).join('')
+          }
+        </div>
+
+        ${
+          completedItems.length > 0
+            ? `<div class="pt-4">
+                <button
+                  onclick="toggleCompletedAccordion()"
+                  class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stone-200/70 dark:bg-stone-800/80 text-stone-600 dark:text-stone-300 cursor-pointer mb-2.5"
+                >
+                  <i data-lucide="${showCompletedAccordion ? 'chevron-down' : 'chevron-right'}" class="w-3.5 h-3.5"></i>
+                  <span>Completed (${completedItems.length})</span>
+                </button>
+                ${
+                  showCompletedAccordion
+                    ? `<div class="space-y-2 opacity-80">${completedItems.map(renderTaskCardHtml).join('')}</div>`
+                    : ''
+                }
+              </div>`
+            : ''
+        }
+
+        ${
+          activeView === 'myday'
+            ? `<div class="pt-4">
+                <div class="flex items-center justify-between mb-3 px-1">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-stone-400">Quick 7-Day Habit Matrix Snapshot</h3>
+                  <button onclick="setActiveView('matrix')" class="text-xs font-semibold text-emerald-500 hover:underline cursor-pointer">Expand Full Chart View →</button>
+                </div>
+                ${renderHabitMatrixAndChartHtml(appData.items.filter((i) => i.isHabit))}
+              </div>`
+            : ''
+        }
+      `;
+    }
+
+    function toggleCompletedAccordion() {
+      showCompletedAccordion = !showCompletedAccordion;
+      renderMainWorkspace();
+      lucide.createIcons();
+    }
+
+    // -----------------------------------------------------------------------
+    // 15. RENDER RIGHT SLIDE-OVER DETAIL INSPECTOR (MS TO DO STEPS & NOTES)
+    // -----------------------------------------------------------------------
+    function renderRightInspector() {
+      const inspectorEl = document.getElementById('right-inspector');
+      const item = appData.items.find((i) => i.id === selectedItemId);
+
+      if (!item) {
+        inspectorEl.classList.add('hidden');
+        inspectorEl.classList.remove('flex');
+        return;
+      }
+
+      inspectorEl.classList.remove('hidden');
+      inspectorEl.classList.add('flex');
+
+      const isDone = isItemCompletedToday(item);
+      const listObj = getListById(item.listId);
+      const { currentStreak, bestStreak } = calculateItemStreak(item);
+      const steps = item.steps || [];
+      const stepsDone = steps.filter((s) => s.completed).length;
+
+      inspectorEl.innerHTML = `
+        <div class="p-4 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${listObj.color}"></span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-stone-400">
+              ${item.isHabit ? 'Habit & Steps Inspector' : 'Task & Steps Inspector'}
+            </span>
+          </div>
+          <button onclick="closeInspector()" class="p-1.5 rounded-lg hover:bg-stone-500/10 text-stone-400 cursor-pointer">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-5">
+          <div class="p-3.5 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-900/60 space-y-3">
+            <div class="flex items-start gap-3">
+              <button
+                type="button"
+                onclick="toggleItemCompletion('${item.id}', '${TODAY_ISO}')"
+                class="mt-0.5 w-6 h-6 ${item.isHabit ? 'rounded-lg' : 'rounded-full'} border-2 flex items-center justify-center shrink-0 cursor-pointer ${
+                  isDone ? 'border-transparent text-white' : 'border-stone-300 dark:border-stone-600'
+                }"
+                style="${isDone ? `background-color: ${listObj.color}` : ''}"
+              >
+                ${isDone ? '<i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>' : ''}
+              </button>
+
+              <input
+                type="text"
+                value="${escapeHtml(item.title)}"
+                onchange="updateInspectorField('${item.id}', 'title', this.value)"
+                class="w-full bg-transparent font-bold text-sm sm:text-base focus:outline-none ${isDone ? 'line-through text-stone-400' : ''}"
+              />
+
+              <button
+                type="button"
+                onclick="toggleItemStar('${item.id}')"
+                class="p-1 text-stone-400 hover:text-rose-500 cursor-pointer"
+              >
+                <i data-lucide="star" class="w-5 h-5 ${item.important ? 'fill-rose-500 text-rose-500' : ''}"></i>
+              </button>
+            </div>
+
+            ${
+              item.isHabit
+                ? `<div class="flex items-center justify-between pt-2 border-t border-stone-200/60 dark:border-stone-800 text-xs font-mono-tabular">
+                    <span class="text-amber-500 font-semibold">🔥 Active Streak: ${currentStreak}d</span>
+                    <span class="text-stone-400">Best: ${bestStreak}d</span>
+                  </div>`
+                : ''
+            }
+          </div>
+
+          <div class="p-3.5 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-900/60 space-y-3">
+            <div class="flex items-center justify-between text-xs font-semibold text-stone-500">
+              <span>Steps (Subtasks)</span>
+              <span class="font-mono-tabular">${stepsDone}/${steps.length}</span>
+            </div>
+
+            ${
+              steps.length > 0
+                ? `<div class="space-y-1.5">
+                    ${steps
+                      .map(
+                        (s) => `
+                        <div class="flex items-center justify-between gap-2 py-1.5 px-2 rounded-xl hover:bg-stone-200/40 dark:hover:bg-stone-800/50">
+                          <label class="flex items-center gap-2.5 text-xs cursor-pointer flex-1 min-w-0">
+                            <input
+                              type="checkbox"
+                              ${s.completed ? 'checked' : ''}
+                              onchange="toggleStepCompleted('${item.id}', '${s.id}')"
+                              class="rounded border-stone-300 text-emerald-600 focus:ring-0 cursor-pointer"
+                            />
+                            <span class="truncate ${s.completed ? 'line-through text-stone-400' : ''}">${escapeHtml(s.title)}</span>
+                          </label>
+                          <button onclick="deleteStep('${item.id}', '${s.id}')" class="text-stone-400 hover:text-rose-500 p-1 cursor-pointer">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                          </button>
+                        </div>
+                      `
+                      )
+                      .join('')}
+                  </div>`
+                : ''
+            }
+
+            <form onsubmit="handleAddStep(event, '${item.id}')" class="flex items-center gap-2 pt-1">
+              <i data-lucide="plus" class="w-4 h-4 text-emerald-500 shrink-0"></i>
+              <input
+                id="inspector-step-input"
+                type="text"
+                placeholder="Add next step..."
+                class="w-full bg-transparent text-xs focus:outline-none"
+              />
+              <button type="submit" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/15 text-emerald-500 cursor-pointer">Add</button>
+            </form>
+          </div>
+
+          <button
+            type="button"
+            onclick="toggleItemMyDay('${item.id}')"
+            class="w-full flex items-center justify-between p-3.5 rounded-2xl border transition-colors cursor-pointer ${
+              item.myDay
+                ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300 font-semibold'
+                : 'border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-900 text-stone-600 dark:text-stone-300'
+            }"
+          >
+            <div class="flex items-center gap-3 text-xs sm:text-sm">
+              <i data-lucide="sun" class="w-4 h-4 text-amber-500"></i>
+              <span>${item.myDay ? 'Added to My Day' : 'Add to My Day'}</span>
+            </div>
+            <span class="text-xs font-mono-tabular">${item.myDay ? '✓ Active' : '+ Add'}</span>
+          </button>
+
+          <div class="p-3.5 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-900/60 space-y-3 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-stone-500 font-medium flex items-center gap-2"><i data-lucide="repeat" class="w-3.5 h-3.5"></i> Repeat Mode</span>
+              <select
+                onchange="updateInspectorField('${item.id}', 'repeat', this.value)"
+                class="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2 py-1 font-medium focus:outline-none"
+              >
+                <option value="daily" ${item.repeat === 'daily' ? 'selected' : ''}>🔁 Daily Habit (Matrix)</option>
+                <option value="weekdays" ${item.repeat === 'weekdays' ? 'selected' : ''}>💼 Weekdays Habit</option>
+                <option value="once" ${item.repeat === 'once' ? 'selected' : ''}>📌 One-Time Task</option>
+                <option value="weekly" ${item.repeat === 'weekly' ? 'selected' : ''}>📅 Weekly Task</option>
+              </select>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-stone-500 font-medium flex items-center gap-2"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Due Date</span>
+              <input
+                type="date"
+                value="${item.dueDate || TODAY_ISO}"
+                onchange="updateInspectorField('${item.id}', 'dueDate', this.value)"
+                class="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2 py-1 font-mono-tabular focus:outline-none"
+              />
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-stone-500 font-medium flex items-center gap-2"><i data-lucide="folder" class="w-3.5 h-3.5"></i> List</span>
+              <select
+                onchange="updateInspectorField('${item.id}', 'listId', this.value)"
+                class="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2 py-1 font-medium focus:outline-none"
+              >
+                ${appData.lists
+                  .map(
+                    (l) =>
+                      `<option value="${l.id}" ${l.id === item.listId ? 'selected' : ''}>${escapeHtml(l.name)}</option>`
+                  )
+                  .join('')}
+              </select>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-stone-500 font-medium flex items-center gap-2"><i data-lucide="target" class="w-3.5 h-3.5"></i> Daily Cue</span>
+              <input
+                type="text"
+                value="${escapeHtml(item.target || '')}"
+                onchange="updateInspectorField('${item.id}', 'target', this.value)"
+                placeholder="e.g. 30 mins"
+                class="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2 py-1 w-36 text-right focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-900/60 space-y-2">
+            <label class="text-xs font-semibold text-stone-500 flex items-center justify-between">
+              <span>Notes & Daily Reflection</span>
+              <span class="text-[10px] text-emerald-500">Auto-saved</span>
+            </label>
+            <textarea
+              rows="4"
+              placeholder="Add notes, links, C code snippets, or habit reflections..."
+              oninput="updateInspectorNoteLive('${item.id}', this.value)"
+              class="w-full bg-transparent text-xs leading-relaxed focus:outline-none resize-y"
+            >${escapeHtml(item.notes || '')}</textarea>
+          </div>
+        </div>
+
+        <div class="p-4 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between text-xs text-stone-400">
+          <span>Saved locally on PC</span>
+          <button
+            type="button"
+            onclick="deleteItem('${item.id}')"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10 font-semibold transition-colors cursor-pointer"
+          >
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>Delete</span>
+          </button>
+        </div>
+      `;
+    }
+
+    function updateInspectorNoteLive(itemId, text) {
+      const item = appData.items.find((i) => i.id === itemId);
+      if (!item) return;
+      item.notes = text;
+      saveState();
+    }
+
+    // -----------------------------------------------------------------------
+    // 16. RENDER SUGGESTIONS MODAL
+    // -----------------------------------------------------------------------
+    function renderSuggestionsModal() {
+      const suggestions = getSuggestionsItems();
+      const container = document.getElementById('suggestions-list-container');
+
+      if (suggestions.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-stone-400 text-xs">
+            Every unfinished task and habit is already in <strong>My Day</strong>! 🎉
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = suggestions
+        .map((item) => {
+          const listObj = getListById(item.listId);
+          const isOverdue = item.dueDate && item.dueDate < TODAY_ISO;
+          return `
+            <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/60">
+              <div class="min-w-0">
+                <div class="text-xs sm:text-sm font-semibold truncate">${escapeHtml(item.title)}</div>
+                <div class="text-[11px] text-stone-400 flex items-center gap-2 mt-0.5">
+                  <span style="color: ${listObj.color}">${escapeHtml(listObj.name)}</span>
+                  ${isOverdue ? '<span class="text-rose-500 font-semibold">• Overdue</span>' : ''}
+                  ${item.isHabit ? '<span>• 🔁 Daily Habit</span>' : ''}
+                </div>
+              </div>
+              <button
+                onclick="addSuggestionToMyDay('${item.id}')"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-300 hover:bg-amber-500/25 shrink-0 cursor-pointer"
+              >
+                + Add to My Day
+              </button>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    function addSuggestionToMyDay(itemId) {
+      const item = appData.items.find((i) => i.id === itemId);
+      if (!item) return;
+      item.myDay = true;
+      saveState();
+      playSound('complete');
+      showToast(`Added "${item.title}" to My Day`, '☀️ My Day');
+      renderSuggestionsModal();
+      renderAll();
+    }
+
+    // -----------------------------------------------------------------------
+    // 17. MASTER RENDER & INITIALIZATION
+    // -----------------------------------------------------------------------
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderAll() {
+      applyThemeAndSoundUI();
+      renderSidebar();
+      renderHeaderTitle();
+      renderUrgentBirthdayBanner();
+      renderKPIs();
+      renderMainWorkspace();
+      renderRightInspector();
+      lucide.createIcons();
+    }
+
+    window.onload = function () {
+      const dueInput = document.getElementById('quick-add-due');
+      if (dueInput) dueInput.value = TODAY_ISO;
+      renderAll();
+      setInterval(checkEODBackgroundClock, 10000);
+    };
+  </script>
+</body>
+</html>
