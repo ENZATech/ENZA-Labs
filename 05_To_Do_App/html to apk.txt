@@ -1,0 +1,17 @@
+Method 1: 
+Convert index.html Directly into an .apk File (2 Minutes, Zero Setup)
+Android APK builders require your file to be named index.html.
+Copy the code below and save it on your PC or phone as index.html.
+Go to htmltoapk.com or webintoapp.com in your browser.Upload your index.html file:App Name: Ritual To-DoTheme / Status Bar Color: #0C0A09   
+Enable LocalStorage / DOM Storage and JavaScript (enabled by default).
+
+Click Build APK, download the .apk file to your phone (or send it via WhatsApp/Telegram to yourself), tap it, and hit Install.
+
+Method 2: The Pro GitHub Way (Zero Watermarks + Instant Updates)
+If you use GitHub, this method takes 2 minutes and gives you a watermark-free native app that updates automatically whenever you edit your code:
+Create a free repository on your GitHub account and upload the file below named index.html.
+Go to your repository Settings → Pages → Branch: main → Save to get your live [https://yourusername.github.io/repo-name/](https://yourusername.github.io/repo-name/) link.
+To install directly on Android: Open that link in Chrome on your Android phone, tap the three dots (⋮) → Add to Home screen / Install App. 
+
+Because I embedded a native Android Web App Manifest into the code below, Android installs it as a full-screen app with no browser address bar.
+Or generate a downloadable .apk: Paste your GitHub Pages link into PWABuilder.com (built by Microsoft) → click Package for Stores → Android → Download APK.
